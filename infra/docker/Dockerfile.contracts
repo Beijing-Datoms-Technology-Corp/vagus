@@ -1,0 +1,8 @@
+# Build and test contracts
+FROM ghcr.io/foundry-rs/foundry:latest
+
+WORKDIR /app
+
+COPY contracts/ ./contracts/
+
+RUN cd contracts && forge install && forge build && forge test

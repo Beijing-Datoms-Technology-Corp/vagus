@@ -1,0 +1,15 @@
+[package]
+name = "vagus-crypto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+ethers = { version = "2.0", features = ["eip712"] }
+k256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
+sha3 = "0.10"
+hex = "0.4"

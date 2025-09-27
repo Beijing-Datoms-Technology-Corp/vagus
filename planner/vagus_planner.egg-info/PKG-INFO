@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: vagus-planner
+Version: 0.1.0
+Summary: Vagus planner tools for intent generation and validation
+Author: Vagus Team
+License: Apache-2.0
+Requires-Python: >=3.11
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: web3>=6.0.0
+Requires-Dist: pyyaml>=6.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"

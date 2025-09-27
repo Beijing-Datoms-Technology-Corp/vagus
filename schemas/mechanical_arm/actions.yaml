@@ -1,0 +1,47 @@
+# Mechanical Arm Actions Schema
+# Defines action parameters, units, bounds, and brakeable fields
+
+actions:
+  MOVE_TO:
+    description: "Move arm to specified pose"
+    parameters:
+      x:
+        type: float
+        unit: meters
+        min: -2.0
+        max: 2.0
+        brakeable: true
+      y:
+        type: float
+        unit: meters
+        min: -2.0
+        max: 2.0
+        brakeable: true
+      z:
+        type: float
+        unit: meters
+        min: 0.0
+        max: 3.0
+        brakeable: true
+      vMax:
+        type: float
+        unit: m/s
+        min: 0.01
+        max: 2.0
+        brakeable: true
+
+  GRASP:
+    description: "Grasp object with specified force"
+    parameters:
+      force:
+        type: float
+        unit: newtons
+        min: 1.0
+        max: 100.0
+        brakeable: true
+      duration:
+        type: int
+        unit: milliseconds
+        min: 100
+        max: 5000
+        brakeable: true

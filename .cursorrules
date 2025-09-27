@@ -1,0 +1,41 @@
+# === Global ===
+- Always write compilable, runnable code with minimal external assumptions.
+- Prefer smallest viable slices: implement skeletons first, then iterate.
+- Every contract/service MUST emit the canonical events defined in /contracts/src/core/Events.sol.
+- Never silently change event names or struct field names once introduced.
+- When adding a new param limit, also add a test that fails when exceeding it.
+
+# === Solidity ===
+- Version: ^0.8.24; OZ only if necessary.
+- Gas/readability tradeoff: prioritize clarity for MVP.
+- Use custom errors over require strings where reasonable.
+- All external functions must be annotated with NatSpec.
+- Tests: Foundry; include invariant tests for ANS state machine hysteresis and capability revocation semantics.
+- Security checks: reentrancy guards where state writes follow external calls; no unbounded loops over user-controlled arrays.
+
+# === Rust (gateway/oracle) ===
+- Edition 2021; use tokio, anyhow, thiserror, tracing.
+- HTTP server (oracle): axum; Client: reqwest.
+- EVM bindings: ethers-rs or alloy; prefer typed Abigen.
+- Provide feature flags: `sim` for simulated sensors, `hw` placeholder for real hardware.
+- Include integration test against an anvil devnet spun up in-test (use `anvil::spawn` if available or docker fallback).
+
+# === Python (planner) ===
+- Python 3.11; use pydantic for schemas.
+- Strict type checking (mypy), lint via ruff; tests via pytest.
+- Never send raw JSON to chain: sign EIP-712 typed data and match Solidity domain separator.
+
+# === Schemas/Policies ===
+- YAML files must specify units and bounds; mark "brakeable" fields explicitly.
+- Provide a codegen step that produces a "scaledLimitsHash" given an Intent and Guard.
+
+# === CI ===
+- Workflows must run on push/PR; fail on lint/test failures.
+- Cache builds for Foundry, cargo, and pip.
+
+# === Documentation ===
+- Update README.md when a milestone completes; include command snippets that actually work.
+- Keep docs consistent with emitted events and function names.
+
+# === Commit ===
+- Conventional Commits; include scope (contracts/gateway/oracle/planner/schemas/docs/infra).

@@ -1,0 +1,8 @@
+# Build Rust oracle
+FROM rust:1.75-slim
+
+WORKDIR /app
+
+COPY oracle/ ./oracle/
+
+RUN cd oracle && cargo build --release

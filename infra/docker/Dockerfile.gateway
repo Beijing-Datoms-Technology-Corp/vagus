@@ -1,0 +1,8 @@
+# Build Rust gateway
+FROM rust:1.75-slim
+
+WORKDIR /app
+
+COPY gateway/ ./gateway/
+
+RUN cd gateway && cargo build --release

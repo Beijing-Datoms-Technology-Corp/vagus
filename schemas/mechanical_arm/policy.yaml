@@ -1,0 +1,26 @@
+# Mechanical Arm Safety Policy
+# Defines scaling factors and restrictions per ANS state
+
+states:
+  SAFE:
+    description: "Normal operation"
+    scaling:
+      speed: 1.0
+      force: 1.0
+    restrictions: []
+
+  DANGER:
+    description: "Reduced capability operation"
+    scaling:
+      speed: 0.6
+      force: 0.7
+    restrictions:
+      - "disable_sharp_tools"
+
+  SHUTDOWN:
+    description: "Emergency stop"
+    scaling:
+      speed: 0.0
+      force: 0.0
+    restrictions:
+      - "disable_all_movement"

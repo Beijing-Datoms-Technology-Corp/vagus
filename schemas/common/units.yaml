@@ -1,0 +1,24 @@
+# Common Units and Conversion Factors
+
+units:
+  time:
+    second: 1.0
+    millisecond: 0.001
+    minute: 60.0
+
+  distance:
+    meter: 1.0
+    millimeter: 0.001
+    centimeter: 0.01
+
+  velocity:
+    "m/s": 1.0
+    "mm/s": 0.001
+
+  force:
+    newton: 1.0
+    kilogram_force: 9.80665
+
+  energy:
+    joule: 1.0
+    watt_hour: 3600.0

@@ -1,0 +1,19 @@
+[package]
+name = "vagus-gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
+vagus-telemetry = { path = "../vagus-telemetry" }
+vagus-crypto = { path = "../vagus-crypto" }
+async-trait = "0.1"
+futures = "0.3"
+clap = { version = "4.0", features = ["derive"] }
+tracing-subscriber = "0.3"

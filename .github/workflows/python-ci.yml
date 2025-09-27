@@ -1,0 +1,49 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'planner/**', 'schemas/**', '.github/workflows/python-ci.yml' ]
+  pull_request:
+    branches: [ main, develop ]
+    paths: [ 'planner/**', 'schemas/**', '.github/workflows/python-ci.yml' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd planner
+        pip install -e .[dev]
+
+    - name: Run ruff linter
+      run: |
+        cd planner
+        ruff check .
+
+    - name: Run mypy
+      run: |
+        cd planner
+        mypy .
+
+    - name: Run tests
+      run: |
+        cd planner
+        pytest
