@@ -1,0 +1,30 @@
+[workspace]
+members = [
+    "cosmwasm/contracts/*",
+    "cosmwasm/packages/*",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/your-org/vagus"
+
+[workspace.dependencies]
+cosmwasm-std = { version = "1.5" }
+cosmwasm-schema = { version = "1.5" }
+cw-storage-plus = "1.2"
+cw721 = "0.18"
+cw721-base = "0.18"
+cw4 = "1.1"
+cw-utils = "1.0"
+cw-multi-test = "0.16"
+schemars = "0.8"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+thiserror = "1.0"
+hex = "0.4"
+rand = "0.8"
+
+# Local crates
+vagus-spec = { path = "cosmwasm/packages/vagus-spec" }

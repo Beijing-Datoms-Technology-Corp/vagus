@@ -5,6 +5,8 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Binary, Uint256};
 use thiserror::Error;
 
+// Types are defined below
+
 #[cw_serde]
 pub enum ANSState {
     SAFE,
