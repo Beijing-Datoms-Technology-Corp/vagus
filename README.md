@@ -38,6 +38,7 @@ python -m planner.examples.send_move_to
 - [x] M5 — Schema/Policy（机械臂最小集）
 - [x] M6 — Portable Spec（链无关规格层）
 - [x] M7 — CosmWasm 合约实现（WASM L1 最小闭环）
+- [x] M8 — 网关/Oracle 多链客户端与 Relayer（本地双链）
 
 ## Architecture
 
