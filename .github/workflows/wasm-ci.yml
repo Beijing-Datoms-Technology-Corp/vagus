@@ -1,0 +1,67 @@
+name: WASM CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'wasm-contracts/**', 'spec/**', '.github/workflows/wasm-ci.yml' ]
+  pull_request:
+    branches: [ main, develop ]
+    paths: [ 'wasm-contracts/**', 'spec/**', '.github/workflows/wasm-ci.yml' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Cache Cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          wasm-contracts/target
+        key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-wasm-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pkg-config libssl-dev
+
+    - name: Check CosmWasm contracts
+      run: |
+        cd wasm-contracts
+        cargo check --target wasm32-unknown-unknown
+
+    - name: Run CosmWasm tests
+      run: |
+        cd wasm-contracts
+        cargo test
+
+    - name: Build WASM contracts
+      run: |
+        cd wasm-contracts
+        cargo build --release --target wasm32-unknown-unknown
+
+    - name: Lint CosmWasm contracts
+      run: |
+        cd wasm-contracts
+        cargo clippy -- -D warnings
+
+    - name: Check workspace format
+      run: |
+        cd wasm-contracts
+        cargo fmt --check

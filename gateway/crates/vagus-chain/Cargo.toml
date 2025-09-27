@@ -1,0 +1,39 @@
+[package]
+name = "vagus-chain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "vagus_chain"
+
+[features]
+default = []
+evm = ["ethers"]
+cosmos = ["cosmrs", "tendermint-rpc"]
+
+[dependencies]
+# Workspace dependencies
+vagus-telemetry = { path = "../vagus-telemetry" }
+vagus-crypto = { path = "../vagus-crypto" }
+vagus-spec = { path = "../../../wasm-contracts/cosmwasm/packages/vagus-spec" }
+
+# Async runtime
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+
+# EVM support
+ethers = { version = "2.0", features = ["abigen", "ws"], optional = true }
+
+# Cosmos support
+cosmrs = { version = "0.15", optional = true }
+tendermint-rpc = { version = "0.34", features = ["http-client", "websocket-client"], optional = true }
+
+# Common
+url = "2.5"
+hex = "0.4"

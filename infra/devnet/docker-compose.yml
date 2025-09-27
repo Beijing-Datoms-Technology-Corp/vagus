@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # EVM Chain (Anvil)
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: >
+      anvil --host 0.0.0.0 --port 8545
+      --block-time 2
+      --accounts 10
+      --balance 10000
+    ports:
+      - "8545:8545"
+    networks:
+      - vagus-net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8545"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  # Cosmos Chain (wasmd)
+  wasmd:
+    build:
+      context: .
+      dockerfile: Dockerfile.wasmd
+    ports:
+      - "26657:26657"  # RPC
+      - "1317:1317"    # REST
+      - "9090:9090"    # gRPC
+    networks:
+      - vagus-net
+    volumes:
+      - wasmd-data:/root/.wasmd
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:26657/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Tone Oracle
+  tone-oracle:
+    build:
+      context: ../../oracle
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+      - EVM_RPC=http://anvil:8545
+      - COSMOS_RPC=http://wasmd:26657
+    depends_on:
+      anvil:
+        condition: service_healthy
+      wasmd:
+        condition: service_healthy
+    networks:
+      - vagus-net
+
+  # Vagus Gateway (EVM)
+  gateway-evm:
+    build:
+      context: ../../gateway
+      dockerfile: Dockerfile
+    command: ["start", "--executor-id", "1", "--chain", "evm", "--rpc-url", "http://anvil:8545", "--afferent-inbox", "0x0000000000000000000000000000000000000000", "--ans-state-manager", "0x0000000000000000000000000000000000000000", "--capability-issuer", "0x0000000000000000000000000000000000000000", "--reflex-arc", "0x0000000000000000000000000000000000000000"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    networks:
+      - vagus-net
+
+  # Vagus Gateway (Cosmos)
+  gateway-cosmos:
+    build:
+      context: ../../gateway
+      dockerfile: Dockerfile
+    command: ["start", "--executor-id", "2", "--chain", "cosmos", "--rpc-url", "http://wasmd:26657", "--afferent-inbox", "vagus1afferentinbox", "--ans-state-manager", "vagus1ansstatemanager", "--capability-issuer", "vagus1capabilityissuer", "--reflex-arc", "vagus1reflexarc"]
+    depends_on:
+      wasmd:
+        condition: service_healthy
+    networks:
+      - vagus-net
+
+  # Relayer (EVM -> Cosmos)
+  relayer-evm-to-cosmos:
+    build:
+      context: ../../relayer
+      dockerfile: Dockerfile
+    command: ["--source-chain", "evm", "--source-rpc", "http://anvil:8545", "--target-chain", "cosmos", "--target-rpc", "http://wasmd:26657", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+      wasmd:
+        condition: service_healthy
+    networks:
+      - vagus-net
+
+  # Relayer (Cosmos -> EVM)
+  relayer-cosmos-to-evm:
+    build:
+      context: ../../relayer
+      dockerfile: Dockerfile
+    command: ["--source-chain", "cosmos", "--source-rpc", "http://wasmd:26657", "--target-chain", "evm", "--target-rpc", "http://anvil:8545", "--private-key", "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+      wasmd:
+        condition: service_healthy
+    networks:
+      - vagus-net
+
+networks:
+  vagus-net:
+    driver: bridge
+
+volumes:
+  wasmd-data:

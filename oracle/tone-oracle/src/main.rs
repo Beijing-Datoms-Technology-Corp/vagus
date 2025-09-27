@@ -9,14 +9,16 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use clap::{Parser, Subcommand};
 use ethers::types::Address;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;
 
 use tone_oracle::{BlockchainConfig, SensorMetrics, ToneOracle, VtiConfig, VtiResult};
+use vagus_chain::{ChainClient, ChainClientFactory, ChainConfig, ChainType};
 
 /// HTTP request for submitting sensor metrics
 #[derive(Debug, Deserialize)]
@@ -48,6 +50,55 @@ struct HealthResponse {
 #[derive(Clone)]
 struct AppState {
     oracle: Arc<Mutex<ToneOracle>>,
+    chain_clients: HashMap<ChainType, Arc<dyn ChainClient>>,
+}
+
+/// CLI arguments
+#[derive(Parser)]
+#[command(name = "tone-oracle")]
+#[command(about = "VTI computation and ANS state updates for Vagus")]
+struct Args {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Start the oracle server
+    Serve {
+        /// Port to listen on
+        #[arg(long, default_value = "3000")]
+        port: u16,
+
+        /// Enable EVM chain integration
+        #[arg(long)]
+        evm_rpc: Option<String>,
+
+        /// Enable Cosmos chain integration
+        #[arg(long)]
+        cosmos_rpc: Option<String>,
+
+        /// Private key for blockchain transactions
+        #[arg(long, env = "PRIVATE_KEY")]
+        private_key: Option<String>,
+
+        /// ANS State Manager contract addresses (chain_name=address)
+        #[arg(long, value_parser = parse_contract_addresses)]
+        ans_state_managers: Vec<(String, String)>,
+
+        /// Other contract addresses (chain_name=contract_name=address)
+        #[arg(long, value_parser = parse_contract_addresses)]
+        contracts: Vec<(String, String, String)>,
+    },
+}
+
+fn parse_contract_addresses(s: &str) -> Result<(String, String), String> {
+    let parts: Vec<&str> = s.split('=').collect();
+    match parts.len() {
+        2 => Ok((parts[0].to_string(), parts[1].to_string())),
+        3 => Ok((parts[0].to_string(), format!("{}={}", parts[1], parts[2]))),
+        _ => Err("Invalid contract address format".to_string()),
+    }
 }
 
 #[tokio::main]
@@ -55,31 +106,127 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
+    let args = Args::parse();
+
+    match args.command {
+        Commands::Serve {
+            port,
+            evm_rpc,
+            cosmos_rpc,
+            private_key,
+            ans_state_managers,
+            contracts,
+        } => {
+            run_server(port, evm_rpc, cosmos_rpc, private_key, ans_state_managers, contracts).await
+        }
+    }
+}
+
+async fn run_server(
+    port: u16,
+    evm_rpc: Option<String>,
+    cosmos_rpc: Option<String>,
+    private_key: Option<String>,
+    ans_state_managers: Vec<(String, String)>,
+    contracts: Vec<(String, String, String)>,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Create VTI configuration
     let config = VtiConfig::default();
 
-    // Create oracle - check for blockchain integration
-    let oracle = if let (Ok(rpc_url), Ok(private_key), Ok(ans_address)) = (
-        std::env::var("RPC_URL"),
-        std::env::var("PRIVATE_KEY"),
-        std::env::var("ANS_STATE_MANAGER_ADDRESS"),
+    // Create oracle - for now use legacy blockchain config if EVM is enabled
+    let oracle = if let (Some(rpc_url), Some(private_key), Some(ans_addr)) = (
+        evm_rpc.as_ref(),
+        private_key.as_ref(),
+        ans_state_managers.iter().find(|(chain, _)| chain == "evm").map(|(_, addr)| addr)
     ) {
-        let ans_address: ethers::types::Address = ans_address.parse()?;
+        let ans_address: ethers::types::Address = ans_addr.parse()?;
         let blockchain_config = BlockchainConfig {
-            rpc_url,
-            private_key,
+            rpc_url: rpc_url.clone(),
+            private_key: private_key.clone(),
             ans_state_manager_address: ans_address,
         };
 
-        tracing::info!("Enabling blockchain integration with ANS State Manager at {:?}", ans_address);
+        tracing::info!("Enabling EVM blockchain integration with ANS State Manager at {:?}", ans_address);
         ToneOracle::new_with_blockchain(config, blockchain_config).await?
     } else {
-        tracing::info!("Running without blockchain integration (set RPC_URL, PRIVATE_KEY, and ANS_STATE_MANAGER_ADDRESS to enable)");
+        tracing::info!("Running without blockchain integration");
         ToneOracle::new(config)
     };
 
+    // Create chain clients
+    let mut chain_clients = HashMap::new();
+
+    // Create EVM client if configured
+    if let (Some(rpc_url), Some(private_key)) = (evm_rpc, private_key.clone()) {
+        let mut contract_addresses = HashMap::new();
+
+        // Add ANS state manager
+        if let Some((_, addr)) = ans_state_managers.iter().find(|(chain, _)| chain == "evm") {
+            contract_addresses.insert("ans_state_manager".to_string(), addr.clone());
+        }
+
+        // Add other contracts for EVM
+        for (chain, contract_name, addr) in &contracts {
+            if chain == "evm" {
+                contract_addresses.insert(contract_name.clone(), addr.clone());
+            }
+        }
+
+        let chain_config = ChainConfig {
+            chain_type: ChainType::EVM,
+            rpc_url,
+            contract_addresses,
+            private_key,
+        };
+
+        match ChainClientFactory::create_client(chain_config).await {
+            Ok(client) => {
+                chain_clients.insert(ChainType::EVM, Arc::from(client) as Arc<dyn ChainClient>);
+                tracing::info!("EVM chain client initialized");
+            }
+            Err(e) => {
+                tracing::warn!("Failed to create EVM chain client: {}", e);
+            }
+        }
+    }
+
+    // Create Cosmos client if configured
+    if let (Some(rpc_url), Some(private_key)) = (cosmos_rpc, private_key) {
+        let mut contract_addresses = HashMap::new();
+
+        // Add ANS state manager
+        if let Some((_, addr)) = ans_state_managers.iter().find(|(chain, _)| chain == "cosmos") {
+            contract_addresses.insert("ans_state_manager".to_string(), addr.clone());
+        }
+
+        // Add other contracts for Cosmos
+        for (chain, contract_name, addr) in &contracts {
+            if chain == "cosmos" {
+                contract_addresses.insert(contract_name.clone(), addr.clone());
+            }
+        }
+
+        let chain_config = ChainConfig {
+            chain_type: ChainType::Cosmos,
+            rpc_url,
+            contract_addresses,
+            private_key,
+        };
+
+        match ChainClientFactory::create_client(chain_config).await {
+            Ok(client) => {
+                chain_clients.insert(ChainType::Cosmos, Arc::from(client) as Arc<dyn ChainClient>);
+                tracing::info!("Cosmos chain client initialized");
+            }
+            Err(e) => {
+                tracing::warn!("Failed to create Cosmos chain client: {}", e);
+            }
+        }
+    }
+
     let state = AppState {
         oracle: Arc::new(Mutex::new(oracle)),
+        chain_clients,
     };
 
     // Build router
@@ -90,10 +237,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(state);
 
     // Start server
-    let addr = "0.0.0.0:3000";
+    let addr = format!("0.0.0.0:{}", port);
     tracing::info!("Tone Oracle listening on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
@@ -140,6 +287,32 @@ async fn submit_metrics(
             }));
         }
     };
+
+    // Update ANS state on all configured chains
+    for (chain_type, client) in &state.chain_clients {
+        if let Some(vti_result) = &result {
+            // Convert string to ANSState enum
+            let suggested_state = match vti_result.suggested_state.as_str() {
+                "SAFE" => vagus_chain::ANSState::SAFE,
+                "DANGER" => vagus_chain::ANSState::DANGER,
+                "SHUTDOWN" => vagus_chain::ANSState::SHUTDOWN,
+                _ => {
+                    tracing::warn!("Unknown ANS state: {}", vti_result.suggested_state);
+                    continue;
+                }
+            };
+
+            match client.update_tone(vti_result.vti_value, suggested_state).await {
+                Ok(_) => {
+                    tracing::info!("Updated ANS state on {:?} chain", chain_type);
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to update ANS state on {:?} chain: {}", chain_type, e);
+                    // Don't fail the request if one chain update fails
+                }
+            }
+        }
+    }
 
     Ok(Json(VtiResponse {
         success: true,

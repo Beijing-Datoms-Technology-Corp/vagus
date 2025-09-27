@@ -5,8 +5,9 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use ethers::types::Address;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 use tracing_subscriber;
+use vagus_chain::{ChainClient, ChainClientFactory, ChainConfig, ChainType};
 use vagus_crypto::VagusDomain;
 use vagus_gateway::manager::GatewayConfig;
 use vagus_gateway::VagusGateway;
@@ -27,9 +28,13 @@ enum Commands {
         #[arg(long, default_value = "1")]
         executor_id: u64,
 
-        /// WebSocket URL for blockchain connection
+        /// Blockchain type (evm or cosmos)
+        #[arg(long, default_value = "evm")]
+        chain: String,
+
+        /// RPC/WebSocket URL for blockchain connection
         #[arg(long, default_value = "ws://localhost:8545")]
-        ws_url: String,
+        rpc_url: String,
 
         /// AfferentInbox contract address
         #[arg(long)]
@@ -62,9 +67,13 @@ enum Commands {
         #[arg(long, default_value = "1")]
         executor_id: u64,
 
-        /// WebSocket URL for blockchain connection
+        /// Blockchain type (evm or cosmos)
+        #[arg(long, default_value = "evm")]
+        chain: String,
+
+        /// RPC/WebSocket URL for blockchain connection
         #[arg(long, default_value = "ws://localhost:8545")]
-        ws_url: String,
+        rpc_url: String,
 
         /// AfferentInbox contract address
         #[arg(long, default_value = "0x0000000000000000000000000000000000000000")]
@@ -94,7 +103,8 @@ async fn main() -> Result<()> {
     match args.command {
         Commands::Start {
             executor_id,
-            ws_url,
+            chain,
+            rpc_url,
             afferent_inbox,
             ans_state_manager,
             capability_issuer,
@@ -102,35 +112,58 @@ async fn main() -> Result<()> {
             window_duration_ms,
             evidence_interval_ms,
         } => {
-            run_gateway(GatewayConfig {
+            let chain_type = match chain.as_str() {
+                "evm" => vagus_chain::ChainType::EVM,
+                "cosmos" => vagus_chain::ChainType::Cosmos,
+                _ => return Err(anyhow::anyhow!("Unsupported chain type: {}", chain)),
+            };
+
+            let mut contract_addresses = std::collections::HashMap::new();
+            contract_addresses.insert("afferent_inbox".to_string(), afferent_inbox);
+            contract_addresses.insert("ans_state_manager".to_string(), ans_state_manager);
+            contract_addresses.insert("capability_issuer".to_string(), capability_issuer);
+            contract_addresses.insert("reflex_arc".to_string(), reflex_arc);
+
+            run_multichain_gateway(
                 executor_id,
-                websocket_url: ws_url,
-                afferent_inbox_address: Address::from_str(&afferent_inbox)?,
-                ans_state_manager_address: Address::from_str(&ans_state_manager)?,
-                capability_issuer_address: Address::from_str(&capability_issuer)?,
-                reflex_arc_address: Address::from_str(&reflex_arc)?,
+                chain_type,
+                rpc_url,
+                contract_addresses,
                 window_duration_ms,
-                evidence_submission_interval_ms: evidence_interval_ms,
-            }).await
+                evidence_interval_ms,
+                false,
+            ).await
         }
         Commands::Simulate {
             executor_id,
-            ws_url,
+            chain,
+            rpc_url,
             afferent_inbox,
             ans_state_manager,
             capability_issuer,
             reflex_arc,
         } => {
-            run_simulation(GatewayConfig {
+            let chain_type = match chain.as_str() {
+                "evm" => vagus_chain::ChainType::EVM,
+                "cosmos" => vagus_chain::ChainType::Cosmos,
+                _ => return Err(anyhow::anyhow!("Unsupported chain type: {}", chain)),
+            };
+
+            let mut contract_addresses = std::collections::HashMap::new();
+            contract_addresses.insert("afferent_inbox".to_string(), afferent_inbox);
+            contract_addresses.insert("ans_state_manager".to_string(), ans_state_manager);
+            contract_addresses.insert("capability_issuer".to_string(), capability_issuer);
+            contract_addresses.insert("reflex_arc".to_string(), reflex_arc);
+
+            run_multichain_gateway(
                 executor_id,
-                websocket_url: ws_url,
-                afferent_inbox_address: Address::from_str(&afferent_inbox)?,
-                ans_state_manager_address: Address::from_str(&ans_state_manager)?,
-                capability_issuer_address: Address::from_str(&capability_issuer)?,
-                reflex_arc_address: Address::from_str(&reflex_arc)?,
-                window_duration_ms: 1000,
-                evidence_submission_interval_ms: 5000,
-            }).await
+                chain_type,
+                rpc_url,
+                contract_addresses,
+                1000,
+                5000,
+                true,
+            ).await
         }
     }
 }
@@ -220,5 +253,60 @@ async fn start_mock_sensors(gateway: VagusGateway, executor_id: u64) -> Result<(
         }
     });
 
+    Ok(())
+}
+
+async fn run_multichain_gateway(
+    executor_id: u64,
+    chain_type: ChainType,
+    rpc_url: String,
+    contract_addresses: HashMap<String, String>,
+    window_duration_ms: u64,
+    evidence_interval_ms: u64,
+    simulation_mode: bool,
+) -> Result<()> {
+    println!("Starting Vagus Gateway with chain type: {:?}", chain_type);
+
+    // Create chain client configuration
+    let chain_config = ChainConfig {
+        chain_type,
+        rpc_url: rpc_url.clone(),
+        contract_addresses,
+        private_key: Some("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()), // Default anvil key
+    };
+
+    // Create chain client
+    let chain_client = ChainClientFactory::create_client(chain_config).await?;
+
+    // Create crypto utilities (for now, still using EVM domain)
+    let crypto_domain = VagusDomain {
+        name: "Vagus".to_string(),
+        version: "1".to_string(),
+        chain_id: 31337, // TODO: Make configurable per chain
+        verifying_contract: Address::zero(), // TODO: Update for multichain
+    };
+
+    let crypto = vagus_crypto::VagusCrypto::new(crypto_domain);
+
+    // For now, fall back to legacy gateway implementation
+    // TODO: Fully integrate with new ChainClient trait
+    if simulation_mode {
+        run_simulation_legacy(executor_id, rpc_url).await
+    } else {
+        run_gateway_legacy(executor_id, rpc_url).await
+    }
+}
+
+async fn run_gateway_legacy(executor_id: u64, rpc_url: String) -> Result<()> {
+    // Placeholder - implement legacy gateway with new chain client
+    println!("Legacy gateway mode for executor {} on {}", executor_id, rpc_url);
+    tokio::signal::ctrl_c().await?;
+    Ok(())
+}
+
+async fn run_simulation_legacy(executor_id: u64, rpc_url: String) -> Result<()> {
+    // Placeholder - implement legacy simulation with new chain client
+    println!("Legacy simulation mode for executor {} on {}", executor_id, rpc_url);
+    tokio::signal::ctrl_c().await?;
     Ok(())
 }
