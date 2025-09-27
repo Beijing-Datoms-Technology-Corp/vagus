@@ -1,0 +1,137 @@
+# Vagus Portable Event Specifications
+# Standardized event keys and values for cross-chain compatibility
+# EVM: indexed topics and data fields
+# CosmWasm: event attributes key-value pairs
+
+version: "1.0"
+
+events:
+  CapabilityIssued:
+    description: "New capability token issued"
+    keys:
+      tokenId:
+        type: uint256
+        indexed: true
+        description: "Token identifier"
+      executorId:
+        type: uint256
+        indexed: true
+        description: "Target executor"
+      planner:
+        type: address
+        indexed: true
+        description: "Issuing planner"
+      actionId:
+        type: bytes32
+        indexed: false
+        description: "Authorized action"
+      expiresAt:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Expiration timestamp"
+
+  CapabilityRevoked:
+    description: "Capability token revoked"
+    keys:
+      tokenId:
+        type: uint256
+        indexed: true
+        description: "Token identifier"
+      executorId:
+        type: uint256
+        indexed: true
+        description: "Target executor"
+      reason:
+        type: uint8
+        indexed: false
+        description: "Revocation reason code"
+      revokedAt:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Revocation timestamp"
+
+  AEPPosted:
+    description: "Afferent evidence packet posted"
+    keys:
+      executorId:
+        type: uint256
+        indexed: true
+        description: "Reporting executor"
+      stateRootSha256:
+        type: bytes32
+        indexed: false
+        description: "SHA256 state root"
+      stateRootKeccak:
+        type: bytes32
+        indexed: false
+        description: "Keccak256 state root"
+      metricsHashSha256:
+        type: bytes32
+        indexed: false
+        description: "SHA256 metrics hash"
+      metricsHashKeccak:
+        type: bytes32
+        indexed: false
+        description: "Keccak256 metrics hash"
+      timestamp:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Posting timestamp"
+
+  VagalToneUpdated:
+    description: "ANS state and tone updated"
+    keys:
+      tone:
+        type: uint256
+        indexed: true
+        unit: basis_points
+        description: "New tone value"
+      state:
+        type: uint8
+        indexed: true
+        description: "New ANS state"
+      updatedAt:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Update timestamp"
+
+  ReflexTriggered:
+    description: "Reflex arc triggered capability revocation"
+    keys:
+      executorId:
+        type: uint256
+        indexed: true
+        description: "Affected executor"
+      reason:
+        type: string
+        indexed: false
+        description: "Trigger reason"
+      revokedCount:
+        type: uint256
+        indexed: false
+        description: "Number of tokens revoked"
+      triggeredAt:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Trigger timestamp"
+
+# Event key naming conventions
+naming:
+  description: "Standardized key names across chains"
+  rules:
+    - Use camelCase for all keys
+    - Use full words over abbreviations
+    - Include units in key names where applicable
+    - Use indexed=true for frequently queried fields
+  evm_mapping:
+    event_name: "topic[0] = keccak256(event_name)"
+    indexed_fields: "become additional topics"
+    non_indexed_fields: "packed in data"
+  cosmwasm_mapping:
+    event_name: "event.type = event_name"
+    all_fields: "become event.attributes as key-value pairs"

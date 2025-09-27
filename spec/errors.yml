@@ -1,0 +1,112 @@
+# Vagus Portable Error Specifications
+# Standardized error codes and messages for cross-chain compatibility
+# EVM: custom errors with revert
+# CosmWasm: error types with return codes
+
+version: "1.0"
+
+errors:
+  # ANS State Manager errors
+  StateChangeTooFrequent:
+    code: 1001
+    description: "State change attempted too soon after previous change"
+    evm: "error StateChangeTooFrequent();"
+    cosmwasm: "StateChangeTooFrequent"
+
+  InvalidToneValue:
+    code: 1002
+    description: "Tone value outside valid range (0-10000)"
+    evm: "error InvalidToneValue(uint256 tone);"
+    cosmwasm: "InvalidToneValue"
+
+  # Capability Issuer errors
+  IntentExpired:
+    code: 2001
+    description: "Intent execution time window has expired"
+    evm: "error IntentExpired();"
+    cosmwasm: "IntentExpired"
+
+  InvalidPreState:
+    code: 2002
+    description: "Pre-execution state root mismatch"
+    evm: "error InvalidPreState();"
+    cosmwasm: "InvalidPreState"
+
+  NonceAlreadyUsed:
+    code: 2003
+    description: "Intent nonce has already been used"
+    evm: "error NonceAlreadyUsed();"
+    cosmwasm: "NonceAlreadyUsed"
+
+  TokenNotFound:
+    code: 2004
+    description: "Capability token does not exist"
+    evm: "error TokenNotFound(uint256 tokenId);"
+    cosmwasm: "TokenNotFound"
+
+  TokenAlreadyRevoked:
+    code: 2005
+    description: "Capability token is already revoked"
+    evm: "error TokenAlreadyRevoked(uint256 tokenId);"
+    cosmwasm: "TokenAlreadyRevoked"
+
+  UnauthorizedRevocation:
+    code: 2006
+    description: "Caller not authorized to revoke this token"
+    evm: "error UnauthorizedRevocation();"
+    cosmwasm: "UnauthorizedRevocation"
+
+  # Vagal Brake errors
+  ANSBlocked:
+    code: 3001
+    description: "Execution blocked by ANS shutdown state"
+    evm: "error ANSBlocked(string reason);"
+    cosmwasm: "ANSBlocked"
+
+  ANSLimitExceeded:
+    code: 3002
+    description: "Scaled parameter exceeds ANS limits"
+    evm: "error ANSLimitExceeded(string field, uint256 requested, uint256 allowed);"
+    cosmwasm: "ANSLimitExceeded"
+
+  # Afferent Inbox errors
+  UnauthorizedAttestor:
+    code: 4001
+    description: "Caller not authorized to post evidence"
+    evm: "error UnauthorizedAttestor();"
+    cosmwasm: "UnauthorizedAttestor"
+
+  InvalidEvidenceFormat:
+    code: 4002
+    description: "Evidence packet format is invalid"
+    evm: "error InvalidEvidenceFormat();"
+    cosmwasm: "InvalidEvidenceFormat"
+
+  # General errors
+  Unauthorized:
+    code: 5001
+    description: "Caller not authorized for this operation"
+    evm: "error Unauthorized();"
+    cosmwasm: "Unauthorized"
+
+  InvalidInput:
+    code: 5002
+    description: "Input parameters are invalid"
+    evm: "error InvalidInput(string reason);"
+    cosmwasm: "InvalidInput"
+
+# Error code ranges
+ranges:
+  1000-1999: "ANS State Manager"
+  2000-2999: "Capability Management"
+  3000-3999: "Safety Systems"
+  4000-4999: "Evidence Processing"
+  5000-5999: "General/Access Control"
+
+# Error handling guidelines
+guidelines:
+  - Always include relevant context in error messages
+  - Use specific error codes for programmatic handling
+  - Chain-agnostic error messages should be human-readable
+  - Include parameter values that caused the error
+  - Prefer custom errors over generic reverts for better debugging

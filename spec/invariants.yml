@@ -1,0 +1,107 @@
+# Vagus Portable Invariants
+# Safety invariants that must hold across all chain implementations
+# Used for formal verification and testing
+
+version: "1.0"
+
+invariants:
+  I1_SafetyPreventsExecution:
+    description: "SHUTDOWN state prevents all capability execution"
+    formal: "∀token ∈ active_tokens: state = SHUTDOWN ⇒ ¬is_valid(token)"
+    test_cases:
+      - "Issue token in SAFE, update to SHUTDOWN, verify token becomes invalid"
+      - "Direct execution in SHUTDOWN state is rejected"
+    severity: critical
+
+  I2_DangerScalesParameters:
+    description: "DANGER state scales brakeable parameters"
+    formal: "∀intent ∈ valid_intents: state = DANGER ∧ param ∈ brakeable ⇒ scaled_param ≤ param × scaling_factor"
+    test_cases:
+      - "MOVE_TO intent in DANGER has reduced vMax"
+      - "GRASP intent in DANGER has reduced force/duration"
+      - "Non-brakeable parameters remain unchanged"
+    severity: critical
+
+  I3_ReflexTimelyRevocation:
+    description: "Reflex arc revokes capabilities within time bounds"
+    formal: "∀aep ∈ dangerous_packets: trigger_time ≤ post_time + max_delay"
+    test_cases:
+      - "Dangerous AEP triggers reflex within configured delay"
+      - "Reflex cooldown prevents spam triggering"
+      - "Multiple executors handled independently"
+    severity: high
+
+  I4_EnvelopeIntegrity:
+    description: "Intent envelope hash matches computed parameters"
+    formal: "∀intent: envelope_hash = hash(executor_id, action_id, params)"
+    test_cases:
+      - "Modified parameters invalidate envelope"
+      - "Envelope hash verification on both chains"
+      - "Replay protection via envelope uniqueness"
+    severity: critical
+
+  I5_CBFProjectionSafety:
+    description: "Control barrier function maintains safety projection"
+    formal: "∀state ∈ reachable: cbf_constraint(state) ⇒ safe_execution(state)"
+    test_cases:
+      - "CBF bounds prevent unsafe parameter combinations"
+      - "ANS state integration with CBF constraints"
+      - "Fallback to conservative bounds on errors"
+    severity: high
+
+  I6_CrossChainConsistency:
+    description: "Same capability has consistent revocation across chains"
+    formal: "∀token: revoked_evm ↔ revoked_cosmos within ΔT"
+    test_cases:
+      - "Relayer synchronizes revocation events"
+      - "Time-bounded consistency windows"
+      - "Conflict resolution for divergent states"
+    severity: high
+
+  I7_MinimalAuthorization:
+    description: "Only whitelisted addresses can execute privileged operations"
+    formal: "∀msg ∈ privileged: sender ∈ whitelist"
+    test_cases:
+      - "Unauthorized addresses cannot post AEP"
+      - "Unauthorized addresses cannot update tone"
+      - "Unauthorized addresses cannot issue capabilities"
+    severity: critical
+
+  I8_ReplayPrevention:
+    description: "Cross-chain messages are not replayable"
+    formal: "∀msg ∈ cross_chain: ¬processed(msg.id, source_chain)"
+    test_cases:
+      - "Relayer deduplicates messages by unique identifiers"
+      - "Sliding window prevents old message replay"
+      - "Source chain validation prevents forgery"
+    severity: critical
+
+  I9_TimeDriftHandling:
+    description: "Chain time differences trigger conservative safety measures"
+    formal: "∀chain_pair: |time_evm - time_cosmos| > threshold ⇒ guard_mode = DANGER"
+    test_cases:
+      - "Time drift detection and conservative fallback"
+      - "Synchronization recovery procedures"
+      - "Audit logging of time drift events"
+    severity: medium
+
+# Testing templates for invariants
+testing:
+  property_based:
+    description: "Use property-based testing for boundary conditions"
+    tools: ["foundry", "proptest", "cw-multi-test"]
+    coverage:
+      - "Threshold boundary values"
+      - "Time-based invariants"
+      - "Parameter scaling edge cases"
+
+  golden_tests:
+    description: "Same test suite runs against both EVM and CosmWasm"
+    structure:
+      setup: "Deploy contracts on both chains"
+      execution: "Run identical operations"
+      verification: "Compare final states and events"
+    artifacts:
+      - "Event log equivalence"
+      - "State consistency"
+      - "Invariant preservation"

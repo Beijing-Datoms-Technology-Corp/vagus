@@ -3,10 +3,10 @@ name: Contracts CI
 on:
   push:
     branches: [ main, develop ]
-    paths: [ 'contracts/**', '.github/workflows/contracts-ci.yml' ]
+    paths: [ 'contracts/**', 'spec/**', '.github/workflows/contracts-ci.yml' ]
   pull_request:
     branches: [ main, develop ]
-    paths: [ 'contracts/**', '.github/workflows/contracts-ci.yml' ]
+    paths: [ 'contracts/**', 'spec/**', '.github/workflows/contracts-ci.yml' ]
 
 jobs:
   test:
@@ -31,3 +31,21 @@ jobs:
         cd contracts
         forge fmt --check
         forge build --sizes
+
+  spec-drift-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install pyyaml
+
+    - name: Run spec drift check
+      run: ./scripts/spec-drift-check.sh

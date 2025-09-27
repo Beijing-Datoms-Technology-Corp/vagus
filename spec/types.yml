@@ -1,0 +1,216 @@
+# Vagus Portable Type Specifications
+# Chain-agnostic type definitions for code generation
+# Generated into: contracts/src/core/Types.sol and wasm-contracts/cosmwasm/packages/vagus-spec/src/lib.rs
+
+version: "1.0"
+
+# Core primitive types
+primitives:
+  address:
+    description: "Chain-specific address type"
+    evm: "address"
+    cosmwasm: "String"  # bech32 encoded
+    rust: "Identity"  # unified wrapper
+
+  uint256:
+    description: "256-bit unsigned integer"
+    evm: "uint256"
+    cosmwasm: "Uint256"
+    rust: "U256"
+
+  bytes32:
+    description: "32-byte hash"
+    evm: "bytes32"
+    cosmwasm: "Binary"  # 32 bytes
+    rust: "[u8; 32]"
+
+  bytes:
+    description: "Variable-length bytes"
+    evm: "bytes"
+    cosmwasm: "Binary"
+    rust: "Vec<u8>"
+
+# Core structs
+structs:
+  Intent:
+    description: "Action execution intent with safety bounds"
+    fields:
+      executorId:
+        type: uint256
+        description: "Target executor identifier"
+      actionId:
+        type: bytes32
+        description: "Action type identifier (keccak256 hash)"
+      params:
+        type: bytes
+        description: "ABI-encoded action parameters"
+      envelopeHash:
+        type: bytes32
+        description: "Hash of intent envelope for integrity"
+      preStateRoot:
+        type: bytes32
+        description: "State root before execution"
+      notBefore:
+        type: uint256
+        unit: seconds
+        description: "Earliest execution timestamp"
+      notAfter:
+        type: uint256
+        unit: seconds
+        description: "Latest execution timestamp"
+      maxDurationMs:
+        type: uint256
+        unit: milliseconds
+        description: "Maximum execution duration"
+      maxEnergyJ:
+        type: uint256
+        unit: joules
+        description: "Maximum energy consumption"
+      planner:
+        type: address
+        description: "Authorized planner address"
+      nonce:
+        type: uint256
+        description: "Uniqueness nonce"
+
+  TokenMeta:
+    description: "Capability token metadata"
+    fields:
+      tokenId:
+        type: uint256
+        description: "Unique token identifier"
+      executorId:
+        type: uint256
+        description: "Associated executor"
+      actionId:
+        type: bytes32
+        description: "Authorized action type"
+      scaledLimitsHash:
+        type: bytes32
+        description: "Hash of scaled parameter limits"
+      issuedAt:
+        type: uint256
+        unit: seconds
+        description: "Token issuance timestamp"
+      expiresAt:
+        type: uint256
+        unit: seconds
+        description: "Token expiration timestamp"
+      revoked:
+        type: bool
+        description: "Revocation status"
+      revokedAt:
+        type: uint256
+        unit: seconds
+        description: "Revocation timestamp (0 if not revoked)"
+
+  Guard:
+    description: "Safety guard with scaling factors"
+    fields:
+      scalingFactor:
+        type: uint256
+        unit: basis_points
+        min: 0
+        max: 10000
+        description: "Scaling factor in basis points (10000 = 100%)"
+      allowed:
+        type: bool
+        description: "Whether execution is allowed"
+
+  AfferentEvidencePacket:
+    description: "Sensor evidence packet"
+    fields:
+      executorId:
+        type: uint256
+        description: "Reporting executor"
+      stateRootSha256:
+        type: bytes32
+        description: "SHA256 hash of sensor state"
+      stateRootKeccak:
+        type: bytes32
+        description: "Keccak256 hash of sensor state"
+      metricsHashSha256:
+        type: bytes32
+        description: "SHA256 hash of aggregated metrics"
+      metricsHashKeccak:
+        type: bytes32
+        description: "Keccak256 hash of aggregated metrics"
+      timestamp:
+        type: uint256
+        unit: seconds
+        description: "Evidence collection timestamp"
+
+  VagalToneIndicator:
+    description: "Computed vagal tone indicator"
+    fields:
+      value:
+        type: uint256
+        unit: basis_points
+        min: 0
+        max: 10000
+        description: "VTI value in basis points"
+      timestamp:
+        type: uint256
+        unit: seconds
+        description: "Computation timestamp"
+
+# Enums
+enums:
+  ANSState:
+    description: "Autonomic nervous system states"
+    values:
+      SAFE:
+        value: 0
+        description: "Normal operation"
+      DANGER:
+        value: 1
+        description: "Reduced capability operation"
+      SHUTDOWN:
+        value: 2
+        description: "Emergency stop"
+
+  CapabilityRevocationReason:
+    description: "Reasons for capability revocation"
+    values:
+      OWNER_REVOCATION:
+        value: 0
+        description: "Revoked by owner"
+      REFLEX_TRIGGER:
+        value: 1
+        description: "Revoked by reflex arc"
+      EXPIRATION:
+        value: 2
+        description: "Expired naturally"
+
+# Constants
+constants:
+  MAX_DURATION_MS:
+    type: uint256
+    value: 30000
+    unit: milliseconds
+    description: "Maximum allowed duration"
+  MAX_ENERGY_J:
+    type: uint256
+    value: 1000
+    unit: joules
+    description: "Maximum allowed energy"
+  MIN_STATE_RESIDENCY:
+    type: uint256
+    value: 60
+    unit: seconds
+    description: "Minimum time between state changes"
+  REFLEX_COOLDOWN:
+    type: uint256
+    value: 30
+    unit: seconds
+    description: "Cooldown between reflex triggers"
+
+# Brakeable fields (for parameter scaling)
+brakeable_fields:
+  description: "Fields that can be scaled by ANS state"
+  actions:
+    MOVE_TO:
+      - vMax
+    GRASP:
+      - force
+      - duration
