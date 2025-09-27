@@ -35,7 +35,7 @@ python -m planner.examples.send_move_to
 - [x] M2 — 核心合约可用（最小集）
 - [x] M3 — 设备侧网关（Rust）骨架
 - [x] M4 — Tone Oracle 服务（Rust）
-- [ ] M5 — Schema/Policy（机械臂最小集）
+- [x] M5 — Schema/Policy（机械臂最小集）
 
 ## Architecture
 
