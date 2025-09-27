@@ -12,3 +12,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 axum = { workspace = true }
 reqwest = { workspace = true }
+tower-http = { workspace = true }
+tracing-subscriber = { workspace = true }
+ethers = { workspace = true }
+
+[dev-dependencies]
+ethers = { workspace = true, features = ["abigen"] }
+hex = "0.4"
