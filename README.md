@@ -36,6 +36,7 @@ python -m planner.examples.send_move_to
 - [x] M3 — 设备侧网关（Rust）骨架
 - [x] M4 — Tone Oracle 服务（Rust）
 - [x] M5 — Schema/Policy（机械臂最小集）
+- [x] M6 — Portable Spec（链无关规格层）
 
 ## Architecture
 
