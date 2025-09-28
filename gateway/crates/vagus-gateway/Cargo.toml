@@ -13,6 +13,7 @@ serde_json = { workspace = true }
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 vagus-telemetry = { path = "../vagus-telemetry" }
 vagus-crypto = { path = "../vagus-crypto" }
+vagus-chain = { path = "../vagus-chain", features = ["evm", "cosmos"] }
 async-trait = "0.1"
 futures = "0.3"
 clap = { version = "4.0", features = ["derive"] }
