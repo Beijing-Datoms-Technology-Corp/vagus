@@ -39,6 +39,58 @@ python -m planner.examples.send_move_to
 - [x] M6 — Portable Spec（链无关规格层）
 - [x] M7 — CosmWasm 合约实现（WASM L1 最小闭环）
 - [x] M8 — 网关/Oracle 多链客户端与 Relayer（本地双链）
+- [x] M9 — 接口一致性测试（黄金规范套件）
+- [x] M10 — 文档/脚本与演示
+
+## Multichain Quick Start
+
+Vagus now supports both EVM and CosmWasm chains! Here's how to get started:
+
+### 1. Launch Dual-Chain Environment
+
+```bash
+# Start EVM + Cosmos chains, gateways, oracle, and relayers
+./infra/devnet/up.sh
+```
+
+This starts:
+- **Anvil (EVM)**: http://localhost:8545
+- **wasmd (Cosmos)**: http://localhost:26657
+- **Tone Oracle**: http://localhost:3000
+- **Cross-chain Relayers**: Auto-sync events between chains
+
+### 2. Deploy Contracts
+
+```bash
+# EVM contracts
+cd contracts
+forge script script/DeployCore.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# CosmWasm contracts (coming soon)
+cd ../wasm-contracts
+# Deploy scripts to be added
+```
+
+### 3. Run Cross-Chain Demo
+
+```bash
+# Execute full cross-chain capability lifecycle
+./demo/scripts/cross-chain-demo.sh
+```
+
+This demonstrates:
+1. Issue capability on EVM
+2. Relay event to Cosmos
+3. Detect danger on Cosmos
+4. Cross-chain revocation
+
+### 4. Run Golden Tests
+
+```bash
+# Test cross-chain invariants
+cd tests/golden
+cargo run -- run-all --evm-rpc http://localhost:8545 --cosmos-rpc http://localhost:26657
+```
 
 ## Architecture
 

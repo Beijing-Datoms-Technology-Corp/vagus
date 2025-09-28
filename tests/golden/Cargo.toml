@@ -1,0 +1,35 @@
+[package]
+name = "vagus-golden-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core testing
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"
+async-trait = "0.1"
+
+# Local crates
+vagus-chain = { path = "../../gateway/crates/vagus-chain", features = ["evm", "cosmos"] }
+vagus-telemetry = { path = "../../gateway/crates/vagus-telemetry" }
+vagus-crypto = { path = "../../gateway/crates/vagus-crypto" }
+vagus-spec = { path = "../../wasm-contracts/cosmwasm/packages/vagus-spec" }
+
+# Testing frameworks
+proptest = "1.0"
+rand = "0.8"
+
+# EVM testing
+ethers = { version = "2.0", features = ["abigen"] }
+
+# CosmWasm testing
+cw-multi-test = "0.16"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+# Additional testing utilities
+tempfile = "3.0"
