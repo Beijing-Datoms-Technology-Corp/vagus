@@ -1,0 +1,89 @@
+test_vectors:
+- cbor_hex: a0
+  input: {}
+  keccak_hex: 2aa6a21781ffb452966498ae5ad467cb2fad3b93144a6294237bc034cda48a23
+  name: empty_dict
+  sha256_hex: c19a797fa1fd590cd2e5b42d1cf5f246e29b91684e2f87404b81dc345c7a56a0
+- cbor_hex: a2636b65796576616c7565636e756d182a
+  input:
+    key: value
+    num: 42
+  keccak_hex: 064f4786d0996d40aa97e673a657563acb6f276863fe34ebf8069f4d3c048693
+  name: simple_dict
+  sha256_hex: f393d6414dc119f3be2f478e6880a0ae2bd3cc2e393e0847d4a7794dea1e27ee
+- cbor_hex: a3616102616d03617a01
+  input:
+    a: 2
+    m: 3
+    z: 1
+  keccak_hex: ced881fd962c35b53c7bd8780945bf39c7529498535efc8ff2b69450cdb23cfd
+  name: sorted_keys
+  sha256_hex: 741234a40de0813cbcbccbd0741e5537f16c34ea4bc2f97a13e1174bb53b5252
+- cbor_hex: a1656f75746572a165696e6e65726576616c7565
+  input:
+    outer:
+      inner: value
+  keccak_hex: 46d90238fd6827fef895b2b3da8f99bc2813ec38cb565d0371b3c5465ce40a0b
+  name: nested_dict
+  sha256_hex: 4614ef3709780df10d1df391f4c47d8c48215f51f53740707233a1445faae6cd
+- cbor_hex: '8401020304'
+  input:
+  - 1
+  - 2
+  - 3
+  - 4
+  keccak_hex: a0c205841983ce72941d9ad5d5ff24e10af97a3c204f9102951c8e378daa2907
+  name: array
+  sha256_hex: d761ebbe8144fb873a370dacf843f2cac16bd264b40f0e730aaeca14f0d8d6c6
+- cbor_hex: a463696e74187b63737472647465737464626f6f6cf565666c6f6174fb4046d5c28f5c28f6
+  input:
+    bool: true
+    float: 45.67
+    int: 123
+    str: test
+  keccak_hex: b17b5e114b0462d5bb35d4eb3a91df60ddff69f1d330805f3a23cc278c2687f5
+  name: mixed_types
+  sha256_hex: 62c591976852420e6c27c61b154f69c833e75b1d898084db74483f9ccba13379
+- cbor_hex: a3647a65726f0065656d707479606566616c7365f4
+  input:
+    empty: ''
+    'false': false
+    zero: 0
+  keccak_hex: a8bad3fd89fd725bc890324f91dd7241e46d06a4c362302683c2d3cc93850807
+  name: zero_values
+  sha256_hex: 72c4cd382b19a15b92afc79e9cd1e4fcf0dc04723e88f71f6def0de916c9720c
+- cbor_hex: a1636269671affffffff
+  input:
+    big: 4294967295
+  keccak_hex: 1604a13ca407a64e55054c8c4ca6a2493a9b4a1e24a95694ade36f13d913dcc9
+  name: large_int
+  sha256_hex: 6e35d88d622c1d363211d6f05f95b1a3b80b874436d652baa05acbfed8dc7197
+- cbor_hex: a1636e6567387a
+  input:
+    neg: -123
+  keccak_hex: bf07f6e15d48597b2fc8e1cc12ff599d2ddacd6f81f66c63044c2472d069df69
+  name: negative_int
+  sha256_hex: c0594ebf963f88f461041665adf82ac7568b0ff4f38e7763f45f3a42db88178f
+- cbor_hex: a468656e657267795f6a18646876656c6f636974791903e86b6475726174696f6e5f6d731975306c616363656c65726174696f6e1901f4
+  input:
+    acceleration: 500
+    duration_ms: 30000
+    energy_j: 100
+    velocity: 1000
+  keccak_hex: 59f0f21014031fc771dbf3ae6f712902a78a4197334ed4753f3073052ca5a242
+  name: intent_params
+  sha256_hex: 2d2b463329091d8e54c06d3db695471fedc65d96fbeed68b4f95659531128319
+- cbor_hex: a268706f736974696f6ea361781864617918c8617a18326876656c6f63697479a361780a617905617a00
+  input:
+    position:
+      x: 100
+      y: 200
+      z: 50
+    velocity:
+      x: 10
+      y: 5
+      z: 0
+  keccak_hex: 0b8ba345360fe4c4e03c4207fb678e77cab2c076e933dc567cbcf7ed064d58c0
+  name: state_root
+  sha256_hex: bc5ca2e55d72a833a37e97ce281d260ad02c044e76f60ba404d5378ea69990fa
+version: '1.0'

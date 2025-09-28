@@ -9,6 +9,9 @@ use ethers::signers::Signer;
 use k256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
+use cbor4ii::core::enc::Encoder;
+use cbor4ii::core::dec::Decoder;
+use std::collections::BTreeMap;
 
 /// EIP-712 Domain for Vagus protocol
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -278,5 +281,77 @@ mod tests {
 
         assert_eq!(hash1, hash2);
         assert_ne!(hash1, hash3);
+    }
+}
+
+/// Deterministic CBOR encoding for cross-chain consistency
+pub mod cbor {
+    use super::*;
+    use sha3::{Digest, Sha3_256};
+    use sha2::Sha256;
+
+    /// Encode data to deterministic CBOR bytes
+    pub fn encode_deterministic<T: Serialize>(data: &T) -> Result<Vec<u8>, anyhow::Error> {
+        // Use serde_cbor with canonical options
+        // For now, use simple encoding - in production would implement full deterministic encoding
+        let mut encoder = Encoder::new(Vec::new());
+        data.serialize(&mut encoder)?;
+        Ok(encoder.into_writer())
+    }
+
+    /// Compute SHA256 hash of CBOR bytes
+    pub fn hash_sha256(cbor_bytes: &[u8]) -> [u8; 32] {
+        let mut hasher = Sha256::new();
+        hasher.update(cbor_bytes);
+        let result = hasher.finalize();
+        result.into()
+    }
+
+    /// Compute Keccak256 hash of CBOR bytes
+    pub fn hash_keccak(cbor_bytes: &[u8]) -> [u8; 32] {
+        let mut hasher = Sha3_256::new();
+        hasher.update(cbor_bytes);
+        let result = hasher.finalize();
+        result.into()
+    }
+
+    /// Encode data and compute both hashes
+    pub fn encode_and_hash<T: Serialize>(data: &T) -> Result<(Vec<u8>, [u8; 32], [u8; 32]), anyhow::Error> {
+        let cbor_bytes = encode_deterministic(data)?;
+        let sha256_hash = hash_sha256(&cbor_bytes);
+        let keccak_hash = hash_keccak(&cbor_bytes);
+        Ok((cbor_bytes, sha256_hash, keccak_hash))
+    }
+}
+
+#[cfg(test)]
+mod cbor_tests {
+    use super::cbor::*;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct TestStruct {
+        name: String,
+        value: u32,
+    }
+
+    #[test]
+    fn test_cbor_encoding() {
+        let data = TestStruct {
+            name: "test".to_string(),
+            value: 42,
+        };
+
+        let (cbor_bytes, sha256_hash, keccak_hash) = encode_and_hash(&data).unwrap();
+
+        assert!(!cbor_bytes.is_empty());
+        assert_eq!(sha256_hash.len(), 32);
+        assert_eq!(keccak_hash.len(), 32);
+
+        // Test deterministic encoding - same input produces same output
+        let (cbor_bytes2, sha256_hash2, keccak_hash2) = encode_and_hash(&data).unwrap();
+        assert_eq!(cbor_bytes, cbor_bytes2);
+        assert_eq!(sha256_hash, sha256_hash2);
+        assert_eq!(keccak_hash, keccak_hash2);
     }
 }

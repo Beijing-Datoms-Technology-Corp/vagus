@@ -30,6 +30,30 @@ events:
         indexed: false
         unit: seconds
         description: "Expiration timestamp"
+      paramsHashSha256:
+        type: bytes32
+        indexed: false
+        description: "SHA256 hash of intent params"
+      paramsHashKeccak:
+        type: bytes32
+        indexed: false
+        description: "Keccak256 hash of intent params"
+      preStateRootSha256:
+        type: bytes32
+        indexed: false
+        description: "SHA256 hash of pre-state root"
+      preStateRootKeccak:
+        type: bytes32
+        indexed: false
+        description: "Keccak256 hash of pre-state root"
+        type: bytes32
+        indexed: false
+        description: "Authorized action"
+      expiresAt:
+        type: uint256
+        indexed: false
+        unit: seconds
+        description: "Expiration timestamp"
 
   CapabilityRevoked:
     description: "Capability token revoked"

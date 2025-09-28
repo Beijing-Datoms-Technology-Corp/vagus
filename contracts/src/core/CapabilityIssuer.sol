@@ -70,6 +70,12 @@ contract CapabilityIssuer is Events {
             revert StateMismatch(intent.preStateRoot, latestStateRoot);
         }
 
+        // ER4: Validate CBOR hashes for params and preStateRoot (placeholder - full implementation in T-5)
+        // For now, just ensure hashes are provided and non-zero
+        if (scaledLimitsHash == bytes32(0)) {
+            revert InvalidInput("scaledLimitsHash cannot be zero");
+        }
+
         // TODO: Check nonce uniqueness per planner
         // For MVP, we skip this check
 
@@ -88,12 +94,17 @@ contract CapabilityIssuer is Events {
         // Add to active tokens list
         activeTokens[intent.executorId].push(tokenId);
 
+        // ER4/I24: Include dual hashes in event
         emit CapabilityIssued(
             tokenId,
             intent.executorId,
             intent.planner,
             intent.actionId,
-            intent.notAfter
+            intent.notAfter,
+            bytes32(0), // paramsHashSha256 - placeholder
+            bytes32(0), // paramsHashKeccak - placeholder
+            intent.preStateRoot, // preStateRootSha256 - simplified
+            intent.preStateRoot  // preStateRootKeccak - simplified
         );
 
         return tokenId;

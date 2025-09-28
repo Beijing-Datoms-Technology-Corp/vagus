@@ -12,4 +12,6 @@ tokio = { workspace = true, features = ["full"] }
 ethers = { version = "2.0", features = ["eip712"] }
 k256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
 sha3 = "0.10"
+sha2 = "0.10"
 hex = "0.4"
+cbor4ii = { version = "0.3", features = ["serde"] }

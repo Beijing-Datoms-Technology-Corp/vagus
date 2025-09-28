@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 // Auto-generated from spec/events.yml
 // DO NOT EDIT MANUALLY
 
-event CapabilityIssued(uint256 indexed tokenId, uint256 indexed executorId, address indexed planner, bytes32 actionId, uint256 expiresAt);
+event CapabilityIssued(uint256 indexed tokenId, uint256 indexed executorId, address indexed planner, bytes32 actionId, uint256 expiresAt, bytes32 paramsHashSha256, bytes32 paramsHashKeccak, bytes32 preStateRootSha256, bytes32 preStateRootKeccak);
 
 event CapabilityRevoked(uint256 indexed tokenId, uint256 indexed executorId, uint8 reason, uint256 revokedAt);
 
