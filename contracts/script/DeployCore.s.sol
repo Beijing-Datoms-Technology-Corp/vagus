@@ -24,13 +24,17 @@ contract DeployCore is Script {
         ANSStateManager ansStateManager = new ANSStateManager();
         console.log("ANSStateManager deployed at:", address(ansStateManager));
 
-        // 3. Deploy CapabilityIssuer (depends on AfferentInbox)
-        CapabilityIssuer capabilityIssuer = new CapabilityIssuer(address(afferentInbox));
+        // 3. Deploy CapabilityIssuer (depends on AfferentInbox, vagalBrake will be set later)
+        CapabilityIssuer capabilityIssuer = new CapabilityIssuer(address(afferentInbox), address(0)); // Temporary address(0)
         console.log("CapabilityIssuer deployed at:", address(capabilityIssuer));
 
         // 4. Deploy VagalBrake (depends on ANSStateManager and CapabilityIssuer)
         VagalBrake vagalBrake = new VagalBrake(address(ansStateManager), address(capabilityIssuer));
         console.log("VagalBrake deployed at:", address(vagalBrake));
+
+        // Set VagalBrake address in CapabilityIssuer
+        capabilityIssuer.setVagalBrake(address(vagalBrake));
+        console.log("VagalBrake address set in CapabilityIssuer");
 
         // 5. Deploy ReflexArc (depends on AfferentInbox and CapabilityIssuer)
         ReflexArc reflexArc = new ReflexArc(address(afferentInbox), address(capabilityIssuer));

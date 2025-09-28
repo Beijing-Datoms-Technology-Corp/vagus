@@ -21,8 +21,9 @@ contract ReflexArcTest is Test {
     function setUp() public {
         inbox = new AfferentInbox();
         ans = new ANSStateManager();
-        issuer = new CapabilityIssuer(address(inbox));
+        issuer = new CapabilityIssuer(address(inbox), address(0)); // Will set vagalBrake later
         brake = new VagalBrake(address(ans), address(issuer));
+        issuer.setVagalBrake(address(brake));
         reflex = new ReflexArc(address(inbox), address(issuer));
 
         // Authorize ReflexArc in CapabilityIssuer
@@ -39,7 +40,7 @@ contract ReflexArcTest is Test {
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
-            preStateRoot: bytes32(0),
+            preStateRoot: inbox.latestStateRoot(999),
             notBefore: uint64(block.timestamp),
             notAfter: uint64(block.timestamp + 3600),
             maxDurationMs: 1000,
@@ -48,7 +49,11 @@ contract ReflexArcTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId = issuer.issueCapability(intent, keccak256("limits"));
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
         // The reflex contract owner is the deployer (address(this) in setUp)
         // So manualTrigger should work
@@ -68,7 +73,7 @@ contract ReflexArcTest is Test {
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
-            preStateRoot: bytes32(0),
+            preStateRoot: inbox.latestStateRoot(999),
             notBefore: uint64(block.timestamp),
             notAfter: uint64(block.timestamp + 3600),
             maxDurationMs: 1000,
@@ -77,9 +82,16 @@ contract ReflexArcTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId1 = issuer.issueCapability(intent, keccak256("limits1"));
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId1 = issuer.issueCapability(intent, scaledLimitsHash);
         intent.nonce = 2;
-        uint256 tokenId2 = issuer.issueCapability(intent, keccak256("limits2"));
+        (scaledLimitsHash, allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId2 = issuer.issueCapability(intent, scaledLimitsHash);
 
         // Verify tokens are active
         assertTrue(issuer.isValid(tokenId1));
@@ -88,7 +100,7 @@ contract ReflexArcTest is Test {
         assertEq(active.length, 2);
 
         // Trigger reflex analysis
-        reflex.analyzeAndTrigger(999);
+        reflex.on_aep(999);
 
         // Tokens should be revoked
         assertFalse(issuer.isValid(tokenId1));
@@ -107,7 +119,7 @@ contract ReflexArcTest is Test {
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
-            preStateRoot: bytes32(0),
+            preStateRoot: inbox.latestStateRoot(999),
             notBefore: uint64(block.timestamp),
             notAfter: uint64(block.timestamp + 3600),
             maxDurationMs: 1000,
@@ -116,27 +128,34 @@ contract ReflexArcTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId = issuer.issueCapability(intent, keccak256("limits"));
+                // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
         // First trigger should work
-        reflex.analyzeAndTrigger(999);
+        reflex.on_aep(999);
         assertFalse(issuer.isValid(tokenId));
 
         // Re-issue token
         intent.nonce = 2;
-        uint256 tokenId2 = issuer.issueCapability(intent, keccak256("limits2"));
+        (scaledLimitsHash, allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId2 = issuer.issueCapability(intent, scaledLimitsHash);
 
         // Advance time past cooldown
         vm.warp(block.timestamp + 31);
 
         // Second trigger should work again after cooldown
-        reflex.analyzeAndTrigger(999);
+        reflex.on_aep(999);
         assertFalse(issuer.isValid(tokenId2)); // Should be revoked again
     }
 
     function testNoEvidence() public {
         // Try to analyze executor with no evidence
-        reflex.analyzeAndTrigger(42);
+        reflex.on_aep(42);
         // Should not revert, just do nothing
     }
 
@@ -150,7 +169,7 @@ contract ReflexArcTest is Test {
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
-            preStateRoot: bytes32(0),
+            preStateRoot: inbox.latestStateRoot(42),
             notBefore: uint64(block.timestamp),
             notAfter: uint64(block.timestamp + 3600),
             maxDurationMs: 1000,
@@ -159,10 +178,14 @@ contract ReflexArcTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId = issuer.issueCapability(intent, keccak256("limits"));
+                // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
         // Analysis should not trigger reflex
-        reflex.analyzeAndTrigger(42);
+        reflex.on_aep(42);
         assertTrue(issuer.isValid(tokenId)); // Still valid
     }
 }

@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import "./Events.sol";
 import "./Types.sol";
+import "./Interfaces.sol";
+import "./GeneratedTypes.sol";
 
 /// @title Capability Token Issuer
 /// @notice Issues and manages revocable capability tokens (ERC721-like semantics)
@@ -28,20 +30,16 @@ contract CapabilityIssuer is Events {
     /// @notice ReflexArc contract authorized to revoke tokens
     address public reflexArc;
 
-    /// @notice Custom error for expired intent
-    error IntentExpired();
-
-    /// @notice Custom error for invalid pre-state
-    error InvalidPreState();
-
-    /// @notice Custom error for already used nonce
-    error NonceAlreadyUsed();
+    /// @notice VagalBrake contract for safety validation
+    address public vagalBrake;
 
     /// @notice Constructor
     /// @param _afferentInbox Address of the AfferentInbox contract
-    constructor(address _afferentInbox) {
+    /// @param _vagalBrake Address of the VagalBrake contract
+    constructor(address _afferentInbox, address _vagalBrake) {
         owner = msg.sender;
         afferentInbox = _afferentInbox;
+        vagalBrake = _vagalBrake;
     }
 
     /// @notice Issue a capability token for an intent
@@ -57,8 +55,20 @@ contract CapabilityIssuer is Events {
             revert IntentExpired();
         }
 
-        // TODO: Validate pre-state root against AfferentInbox
-        // For MVP, we skip this check
+        // ER1: Validate that scaledLimitsHash comes from VagalBrake
+        (bytes32 expectedScaledLimitsHash, bool brakeAllowed) = IVagalBrake(vagalBrake).previewBrake(intent);
+        if (!brakeAllowed) {
+            revert ANSBlocked("VagalBrake validation failed");
+        }
+        if (scaledLimitsHash != expectedScaledLimitsHash) {
+            revert InvalidInput("scaledLimitsHash mismatch");
+        }
+
+        // ER6: Validate pre-state root against AfferentInbox
+        bytes32 latestStateRoot = IAfferentInbox(afferentInbox).latestStateRoot(intent.executorId);
+        if (intent.preStateRoot != latestStateRoot) {
+            revert StateMismatch(intent.preStateRoot, latestStateRoot);
+        }
 
         // TODO: Check nonce uniqueness per planner
         // For MVP, we skip this check
@@ -81,8 +91,8 @@ contract CapabilityIssuer is Events {
         emit CapabilityIssued(
             tokenId,
             intent.executorId,
+            intent.planner,
             intent.actionId,
-            scaledLimitsHash,
             intent.notAfter
         );
 
@@ -112,6 +122,13 @@ contract CapabilityIssuer is Events {
     function setReflexArc(address _reflexArc) external {
         require(msg.sender == owner, "Only owner can set reflex arc");
         reflexArc = _reflexArc;
+    }
+
+    /// @notice Set the VagalBrake contract address
+    /// @param _vagalBrake The VagalBrake contract address
+    function setVagalBrake(address _vagalBrake) external {
+        require(msg.sender == owner, "Only owner can set vagal brake");
+        vagalBrake = _vagalBrake;
     }
 
     /// @notice Check if a token is valid (not expired, not revoked)

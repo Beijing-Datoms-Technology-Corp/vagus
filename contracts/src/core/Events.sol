@@ -8,9 +8,9 @@ contract Events {
     event CapabilityIssued(
         uint256 indexed tokenId,
         uint256 indexed executorId,
-        bytes32 indexed actionId,
-        bytes32 paramsHash,
-        uint64 notAfter
+        address indexed planner,
+        bytes32 actionId,
+        uint256 expiresAt
     );
 
     /// @notice Emitted when a capability token is revoked
@@ -32,10 +32,11 @@ contract Events {
         uint8 state
     );
 
-    /// @notice Emitted when reflex arc triggers bulk revocation
+    /// @notice Emitted when reflex arc triggers capability revocation
     event ReflexTriggered(
         uint256 indexed executorId,
-        bytes32 reason,
-        uint256[] revoked
+        string reason,
+        uint256 revokedCount,
+        uint256 triggeredAt
     );
 }

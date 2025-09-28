@@ -19,8 +19,9 @@ contract VagalBrakeTest is Test {
     function setUp() public {
         inbox = new AfferentInbox();
         ans = new ANSStateManager();
-        issuer = new CapabilityIssuer(address(inbox));
+        issuer = new CapabilityIssuer(address(inbox), address(0)); // Will set vagalBrake later
         brake = new VagalBrake(address(ans), address(issuer));
+        issuer.setVagalBrake(address(brake));
     }
 
     function testPreviewBrakeSafe() public {

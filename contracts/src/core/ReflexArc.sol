@@ -13,6 +13,9 @@ contract ReflexArc is Events {
     /// @notice CapabilityIssuer contract
     address public capabilityIssuer;
 
+    /// @notice ANS State Manager contract
+    address public ansStateManager;
+
     /// @notice Contract owner
     address public owner;
 
@@ -35,33 +38,61 @@ contract ReflexArc is Events {
         owner = msg.sender;
         afferentInbox = _afferentInbox;
         capabilityIssuer = _capabilityIssuer;
+        // For now, ansStateManager will be set separately or derived from capabilityIssuer
+        // In a full implementation, this should be passed as a parameter
     }
 
-    /// @notice Analyze afferent evidence and trigger reflex if needed
-    /// @param executorId The executor ID to analyze
-    function analyzeAndTrigger(uint256 executorId) external {
-        // Rate limiting check
-        if (block.timestamp - lastReflexTrigger[executorId] < REFLEX_COOLDOWN) {
-            return; // Skip if cooldown not expired
+    /// @notice Trigger reflex when ANS state changes (ER2)
+    /// @param executorId The executor ID
+    /// @param newState The new ANS state
+    function on_state_change(uint256 executorId, uint8 newState) external {
+        require(msg.sender == owner || msg.sender == address(afferentInbox), "Unauthorized");
+
+        // Rate limiting check - allow if first trigger or cooldown expired
+        if (lastReflexTrigger[executorId] != 0 && block.timestamp - lastReflexTrigger[executorId] < REFLEX_COOLDOWN) {
+            return; // Skip if cooldown not expired and not first trigger
         }
 
-        // Get latest evidence from AfferentInbox
+        // Trigger reflex for DANGER or SHUTDOWN states
+        if (newState == 2 || newState == 3) { // DANGER = 2, SHUTDOWN = 3
+            _triggerReflexPaginated(executorId, "state_change", 0, 10); // Start with first 10 tokens
+            lastReflexTrigger[executorId] = block.timestamp;
+        }
+    }
+
+    /// @notice Trigger reflex when afferent evidence is posted (ER2)
+    /// @param executorId The executor ID
+    function on_aep(uint256 executorId) external {
+        // Allow owner or afferentInbox to trigger
+        require(msg.sender == owner || msg.sender == address(afferentInbox), "Unauthorized");
+
+        // Rate limiting check - allow if first trigger or cooldown expired
+        if (lastReflexTrigger[executorId] != 0 && block.timestamp - lastReflexTrigger[executorId] < REFLEX_COOLDOWN) {
+            return; // Skip if cooldown not expired and not first trigger
+        }
+
+        // Get latest evidence and check if it indicates danger
         bytes32 stateRoot = IAfferentInbox(afferentInbox).latestStateRoot(executorId);
         if (stateRoot == bytes32(0)) {
             return; // No evidence available
         }
 
-        // TODO: In a full implementation, we would decode the state root
-        // and metrics hash to analyze sensor data. For MVP, we use a simplified approach.
-
-        // For MVP: Simulate reflex triggering based on executor ID
-        // In production, this would analyze actual sensor data from the state root
-        bool shouldTrigger = _shouldTriggerReflex(executorId);
-
-        if (shouldTrigger) {
-            _triggerReflex(executorId, "danger_detected");
+        // For MVP: Check if executor indicates danger (executor 999)
+        // In production: Analyze actual sensor data from state root
+        if (_shouldTriggerReflex(executorId)) {
+            _triggerReflexPaginated(executorId, "danger_detected", 0, 10); // Start with first 10 tokens
             lastReflexTrigger[executorId] = block.timestamp;
         }
+    }
+
+    /// @notice Pulse mechanism to continue paginated revocation (ER2)
+    /// @param executorId The executor ID
+    /// @param startIndex Starting index for pagination
+    /// @param maxCount Maximum tokens to process
+    function pulse(uint256 executorId, uint256 startIndex, uint256 maxCount) external {
+        require(msg.sender == owner || msg.sender == address(afferentInbox), "Unauthorized");
+
+        _triggerReflexPaginated(executorId, "pulse_continue", startIndex, maxCount);
     }
 
     /// @notice Manually trigger reflex for testing/emergency
@@ -70,7 +101,7 @@ contract ReflexArc is Events {
     function manualTrigger(uint256 executorId, string calldata reason) external {
         require(msg.sender == owner, "Only owner can manually trigger reflex");
 
-        _triggerReflex(executorId, reason);
+        _triggerReflexPaginated(executorId, reason, 0, 50); // Process up to 50 tokens
     }
 
     /// @notice Internal function to determine if reflex should be triggered
@@ -93,28 +124,43 @@ contract ReflexArc is Events {
         return false;
     }
 
-    /// @notice Internal function to execute reflex action
+    /// @notice Internal function to execute paginated reflex action (ER2)
     /// @param executorId The executor ID
     /// @param reason The reason for triggering
-    function _triggerReflex(uint256 executorId, string memory reason) internal {
+    /// @param startIndex Starting index in active tokens list
+    /// @param maxCount Maximum number of tokens to process
+    function _triggerReflexPaginated(uint256 executorId, string memory reason, uint256 startIndex, uint256 maxCount) internal {
         // Get all active tokens for this executor
         uint256[] memory activeTokens = ICapabilityIssuer(capabilityIssuer).activeTokensOf(executorId);
 
-        // Revoke all active tokens
+        // Process tokens with pagination
+        uint256 processedCount = 0;
         uint256 revokedCount = 0;
-        for (uint256 i = 0; i < activeTokens.length; i++) {
+        uint256[] memory revokedTokens = new uint256[](maxCount);
+
+        for (uint256 i = startIndex; i < activeTokens.length && processedCount < maxCount; i++) {
             uint256 tokenId = activeTokens[i];
             if (ICapabilityIssuer(capabilityIssuer).isValid(tokenId)) {
                 ICapabilityIssuer(capabilityIssuer).revoke(tokenId, 1);
+                revokedTokens[revokedCount] = tokenId;
                 revokedCount++;
             }
+            processedCount++;
         }
 
+        // Emit event if any tokens were revoked
         if (revokedCount > 0) {
+            // Create a compact array with only revoked tokens
+            uint256[] memory actualRevokedTokens = new uint256[](revokedCount);
+            for (uint256 i = 0; i < revokedCount; i++) {
+                actualRevokedTokens[i] = revokedTokens[i];
+            }
+
             emit ReflexTriggered(
                 executorId,
-                keccak256(abi.encodePacked(reason)),
-                activeTokens
+                reason,
+                revokedCount,
+                block.timestamp
             );
         }
     }

@@ -4,17 +4,24 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import "../src/core/CapabilityIssuer.sol";
 import "../src/core/AfferentInbox.sol";
+import "../src/core/ANSStateManager.sol";
+import "../src/core/VagalBrake.sol";
 import "../src/core/Types.sol";
 
 contract CapabilityIssuerTest is Test {
     CapabilityIssuer issuer;
     AfferentInbox inbox;
+    ANSStateManager ans;
+    VagalBrake brake;
 
     address user = address(0x123);
 
     function setUp() public {
         inbox = new AfferentInbox();
-        issuer = new CapabilityIssuer(address(inbox));
+        ans = new ANSStateManager();
+        issuer = new CapabilityIssuer(address(inbox), address(0)); // Will set vagalBrake later
+        brake = new VagalBrake(address(ans), address(issuer));
+        issuer.setVagalBrake(address(brake));
     }
 
     function testIssueCapability() public {
@@ -32,7 +39,9 @@ contract CapabilityIssuerTest is Test {
             nonce: 1
         });
 
-        bytes32 scaledLimitsHash = keccak256("limits");
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
 
         uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
@@ -68,7 +77,11 @@ contract CapabilityIssuerTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId = issuer.issueCapability(intent, keccak256("limits"));
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
         // Revoke it
         issuer.revoke(tokenId, 1);
@@ -95,8 +108,12 @@ contract CapabilityIssuerTest is Test {
             nonce: 1
         });
 
-        vm.expectRevert(CapabilityIssuer.IntentExpired.selector);
-        issuer.issueCapability(intent, keccak256("limits"));
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        vm.expectRevert(abi.encodeWithSignature("IntentExpired()"));
+        issuer.issueCapability(intent, scaledLimitsHash);
     }
 
     function testIsValidExpired() public {
@@ -114,7 +131,11 @@ contract CapabilityIssuerTest is Test {
             nonce: 1
         });
 
-        uint256 tokenId = issuer.issueCapability(intent, keccak256("limits"));
+        // Get the correct scaled limits hash from VagalBrake
+        (bytes32 scaledLimitsHash, bool allowed) = brake.previewBrake(intent);
+        require(allowed, "Brake should allow this intent");
+
+        uint256 tokenId = issuer.issueCapability(intent, scaledLimitsHash);
 
         // Fast forward time
         vm.warp(block.timestamp + 2);

@@ -23,3 +23,8 @@ interface ICapabilityIssuer {
 interface IAfferentInbox {
     function latestStateRoot(uint256 executorId) external view returns (bytes32);
 }
+
+/// @title VagalBrake Interface
+interface IVagalBrake {
+    function previewBrake(Types.Intent calldata intent) external view returns (bytes32 scaledLimitsHash, bool allowed);
+}
