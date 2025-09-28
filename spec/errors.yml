@@ -82,6 +82,38 @@ errors:
     evm: "error InvalidEvidenceFormat();"
     cosmwasm: "InvalidEvidenceFormat"
 
+  # Rate limiting and circuit breaker
+  RateLimited:
+    code: 6001
+    description: "Request rate exceeds configured limits"
+    evm: "error RateLimited(string limiterId, uint256 retryAfter);"
+    cosmwasm: "RateLimited"
+
+  CircuitBreakerOpen:
+    code: 6002
+    description: "Circuit breaker is in open state, blocking requests"
+    evm: "error CircuitBreakerOpen(string breakerId, uint256 retryAfter);"
+    cosmwasm: "CircuitBreakerOpen"
+
+  # Hashing and state validation
+  CBORHashMismatch:
+    code: 7001
+    description: "CBOR normalized input produces different hashes across stacks"
+    evm: "error CBORHashMismatch(bytes32 expectedSha256, bytes32 actualSha256, bytes32 expectedKeccak, bytes32 actualKeccak);"
+    cosmwasm: "CBORHashMismatch"
+
+  StateMismatch:
+    code: 7002
+    description: "Pre-execution state root does not match AfferentInbox latest"
+    evm: "error StateMismatch(bytes32 expected, bytes32 actual);"
+    cosmwasm: "StateMismatch"
+
+  TTLExpired:
+    code: 7003
+    description: "Time-to-live has expired"
+    evm: "error TTLExpired(uint256 currentTime, uint256 ttl);"
+    cosmwasm: "TTLExpired"
+
   # General errors
   Unauthorized:
     code: 5001
@@ -102,6 +134,8 @@ ranges:
   3000-3999: "Safety Systems"
   4000-4999: "Evidence Processing"
   5000-5999: "General/Access Control"
+  6000-6999: "Rate Limiting/Circuit Breaker"
+  7000-7999: "Hashing/State Validation"
 
 # Error handling guidelines
 guidelines:

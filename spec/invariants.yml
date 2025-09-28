@@ -85,6 +85,78 @@ invariants:
       - "Audit logging of time drift events"
     severity: medium
 
+  I19_NoCapabilityWithoutBrake:
+    description: "CapabilityIssuer cannot issue without valid VagalBrake check"
+    formal: "∀issue_request: ¬brake_validated(scaled_limits_hash) ⇒ ¬issue_successful"
+    test_cases:
+      - "Issue request without brake validation fails"
+      - "Escape/emergency exceptions must emit events"
+      - "Brake validation must precede state consistency check"
+    severity: critical
+
+  I20_ExplicitReflexTriggers:
+    description: "ReflexArc only triggered by explicit calls, not event listeners"
+    formal: "∀reflex_activation: activation ∈ {on_state_change, on_aep, pulse}"
+    test_cases:
+      - "Reflex cannot be triggered by chain events"
+      - "Only ANSStateManager, AfferentInbox, and keepers can call"
+      - "Dedupe and rate limiting prevents spam"
+    severity: critical
+
+  I21_ConsistentCBORDualHash:
+    description: "Same CBOR input produces identical sha256/keccak hashes across stacks"
+    formal: "∀input: hash_sha256_evm(input) = hash_sha256_cosmos(input) ∧ hash_keccak_evm(input) = hash_keccak_cosmos(input)"
+    test_cases:
+      - "CBOR normalized inputs produce identical hashes"
+      - "IEEE754 float handling consistency"
+      - "Map ordering determinism"
+    severity: high
+
+  I22_WASMRegistryOnlyAuth:
+    description: "WASM authorization uses only tx.sender and Registry whitelist"
+    formal: "∀wasm_msg ∈ privileged: authorized ⇔ sender ∈ registry_whitelist"
+    test_cases:
+      - "EIP-712 signatures rejected in contract logic"
+      - "Only tx.sender + registry determines authorization"
+      - "No on-chain signature verification paths"
+    severity: critical
+
+  I23_SecondsTTLConsistency:
+    description: "TTL uses floor(seconds) with consistent results across stacks"
+    formal: "∀intent: ttl_valid_evm = ttl_valid_cosmos ∧ time_unit = seconds"
+    test_cases:
+      - "WASM floors env.block.time to seconds"
+      - "Same intent TTL results on both chains"
+      - "Time drift handled conservatively"
+    severity: high
+
+  I24_IssueEventHashes:
+    description: "CapabilityIssued includes scaled_limits_hash and dual hashes"
+    formal: "∀issue_event: contains(scaled_limits_hash, pre_state_root_*, params_hash_*)"
+    test_cases:
+      - "All hash fields present in event"
+      - "Dual hash suffixes (*_sha256, *_keccak)"
+      - "CBOR normalization applied before hashing"
+    severity: medium
+
+  I25_PaginatedRevocation:
+    description: "Reflex revocation supports pagination with upper bounds"
+    formal: "∀revocation_batch: |batch| ≤ MAX_BATCH_SIZE ∧ gas_safe(batch)"
+    test_cases:
+      - "Large revocation queues processed in chunks"
+      - "Pulse mechanism completes partial revocations"
+      - "Never exceeds execution limits"
+    severity: high
+
+  I26_RateLimitCircuitBreaker:
+    description: "RateLimiter and CircuitBreaker behavior consistent across stacks"
+    formal: "∀rate_limit_event: behavior_evm = behavior_cosmos"
+    test_cases:
+      - "Sliding window/token bucket consistency"
+      - "Circuit breaker state transitions match"
+      - "Error codes and events identical"
+    severity: medium
+
 # Testing templates for invariants
 testing:
   property_based:
@@ -96,7 +168,7 @@ testing:
       - "Parameter scaling edge cases"
 
   golden_tests:
-    description: "Same test suite runs against both EVM and CosmWasm"
+    description: "Same test suite runs against both EVM and CosmWASM"
     structure:
       setup: "Deploy contracts on both chains"
       execution: "Run identical operations"
