@@ -10,7 +10,7 @@ use vagus_spec::{CapabilityRevocationReason, TokenMeta, VagusError};
 
 // State
 pub const NEXT_TOKEN_ID: Item<u64> = Item::new("next_token_id");
-pub const AUTHORIZED_PLANNERS: Item<HashSet<String>> = Item::new("authorized_planners");
+pub const AUTHORIZED_EXECUTORS: Item<HashSet<String>> = Item::new("authorized_executors");
 pub const REFLEX_ARC: Item<String> = Item::new("reflex_arc");
 
 // Token metadata storage (simplified cw721)
@@ -20,7 +20,7 @@ pub const OWNED_TOKENS: Map<(String, String), ()> = Map::new("owned_tokens"); //
 
 #[cosmwasm_schema::cw_serde]
 pub struct InstantiateMsg {
-    pub authorized_planners: Vec<String>,
+    pub authorized_executors: Vec<String>,
     pub reflex_arc: Option<String>,
 }
 
@@ -77,13 +77,13 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, VagusError> {
     // Validate addresses
-    let mut planners = HashSet::new();
-    for planner in msg.authorized_planners {
-        deps.api.addr_validate(&planner)?;
-        planners.insert(planner);
+    let mut executors = HashSet::new();
+    for executor in msg.authorized_executors {
+        deps.api.addr_validate(&executor)?;
+        executors.insert(executor);
     }
 
-    AUTHORIZED_PLANNERS.save(deps.storage, &planners)?;
+    AUTHORIZED_EXECUTORS.save(deps.storage, &executors)?;
     NEXT_TOKEN_ID.save(deps.storage, &1)?;
 
     if let Some(reflex_arc) = msg.reflex_arc {
@@ -148,15 +148,15 @@ pub fn execute_issue(
     scaled_limits_hash: Binary,
     expires_at: u64,
 ) -> Result<Response, VagusError> {
-    // Check authorization - sender must be authorized planner
-    let planners = AUTHORIZED_PLANNERS.load(deps.storage)?;
-    if !planners.contains(&info.sender.to_string()) {
+    // Check authorization - sender must be authorized executor (ER3)
+    let executors = AUTHORIZED_EXECUTORS.load(deps.storage)?;
+    if !executors.contains(&info.sender.to_string()) {
         return Err(VagusError::Unauthorized);
     }
 
-    // Validate time constraints
+    // Validate time constraints (closed interval [not_before, not_after])
     let current_time = env.block.time.seconds();
-    if not_before >= not_after || expires_at <= current_time {
+    if current_time < not_before || current_time > not_after {
         return Err(VagusError::IntentExpired);
     }
 
