@@ -5,8 +5,6 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Binary, Uint256};
 use thiserror::Error;
 
-// Types are defined below
-
 #[cw_serde]
 pub enum ANSState {
     SAFE,
@@ -103,6 +101,16 @@ pub enum VagusError {
     UnauthorizedAttestor,
     #[error("Evidence packet format is invalid")]
     InvalidEvidenceFormat,
+    #[error("Request rate exceeds configured limits")]
+    RateLimited,
+    #[error("Circuit breaker is in open state, blocking requests")]
+    CircuitBreakerOpen,
+    #[error("CBOR normalized input produces different hashes across stacks")]
+    CBORHashMismatch,
+    #[error("Pre-execution state root does not match AfferentInbox latest")]
+    StateMismatch,
+    #[error("Time-to-live has expired")]
+    TTLExpired,
     #[error("Caller not authorized for this operation")]
     Unauthorized,
     #[error("Input parameters are invalid")]
