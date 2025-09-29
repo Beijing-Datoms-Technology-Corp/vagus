@@ -10,7 +10,11 @@ contract Events {
         uint256 indexed executorId,
         address indexed planner,
         bytes32 actionId,
-        uint256 expiresAt
+        uint256 expiresAt,
+        bytes32 paramsHashSha256,
+        bytes32 paramsHashKeccak,
+        bytes32 preStateRootSha256,
+        bytes32 preStateRootKeccak
     );
 
     /// @notice Emitted when a capability token is revoked
@@ -28,8 +32,9 @@ contract Events {
 
     /// @notice Emitted when vagal tone is updated
     event VagalToneUpdated(
-        uint256 tone,
-        uint8 state
+        uint256 indexed tone,
+        uint8 indexed state,
+        uint256 updatedAt
     );
 
     /// @notice Emitted when reflex arc triggers capability revocation
