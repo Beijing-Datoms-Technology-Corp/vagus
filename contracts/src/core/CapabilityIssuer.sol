@@ -101,10 +101,10 @@ contract CapabilityIssuer is Events {
             intent.planner,
             intent.actionId,
             intent.notAfter,
-            bytes32(0), // paramsHashSha256 - placeholder
-            bytes32(0), // paramsHashKeccak - placeholder
-            intent.preStateRoot, // preStateRootSha256 - simplified
-            intent.preStateRoot  // preStateRootKeccak - simplified
+            bytes32(0), // paramsHashSha256 - placeholder for T-5 full implementation
+            bytes32(0), // paramsHashKeccak - placeholder for T-5 full implementation
+            intent.preStateRoot, // preStateRootSha256 - simplified for now
+            intent.preStateRoot  // preStateRootKeccak - simplified for now
         );
 
         return tokenId;

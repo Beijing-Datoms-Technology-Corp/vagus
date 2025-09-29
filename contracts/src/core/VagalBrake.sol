@@ -37,7 +37,7 @@ contract VagalBrake is Events {
     /// @return tokenId The issued capability token ID
     function issueWithBrake(Types.Intent calldata intent) external returns (uint256 tokenId) {
         // Get guard information from ANS State Manager
-        (uint256 scalingFactor, bool allowed) = IANSStateManager(ansStateManager).guardFor(intent.actionId);
+        (uint256 scalingFactor, bool allowed) = IANSStateManager(ansStateManager).guardFor(intent.executorId, intent.actionId);
 
         // Check if action is allowed
         if (!allowed) {
@@ -59,7 +59,7 @@ contract VagalBrake is Events {
     /// @return allowed Whether the intent would be allowed
     function previewBrake(Types.Intent calldata intent) external view returns (bytes32 scaledLimitsHash, bool allowed) {
         // Get guard information from ANS State Manager
-        (uint256 scalingFactor, bool actionAllowed) = IANSStateManager(ansStateManager).guardFor(intent.actionId);
+        (uint256 scalingFactor, bool actionAllowed) = IANSStateManager(ansStateManager).guardFor(intent.executorId, intent.actionId);
 
         allowed = actionAllowed;
         if (!allowed) {

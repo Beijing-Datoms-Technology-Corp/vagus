@@ -8,7 +8,7 @@ import "./Types.sol";
 
 /// @title ANS State Manager Interface
 interface IANSStateManager {
-    function guardFor(bytes32 actionId) external view returns (uint256 scalingFactor, bool allowed);
+    function guardFor(uint256 executorId, bytes32 actionId) external view returns (uint256 scalingFactor, bool allowed);
 }
 
 /// @title Capability Issuer Interface
@@ -27,4 +27,9 @@ interface IAfferentInbox {
 /// @title VagalBrake Interface
 interface IVagalBrake {
     function previewBrake(Types.Intent calldata intent) external view returns (bytes32 scaledLimitsHash, bool allowed);
+}
+
+/// @title ReflexArc Interface
+interface IReflexArc {
+    function on_state_change(uint256 executorId, uint8 newState) external;
 }

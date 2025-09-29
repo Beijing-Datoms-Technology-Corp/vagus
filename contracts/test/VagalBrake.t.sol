@@ -15,6 +15,7 @@ contract VagalBrakeTest is Test {
     AfferentInbox inbox;
 
     address user = address(0x123);
+    uint256 constant EXECUTOR_ID = 1;
 
     function setUp() public {
         inbox = new AfferentInbox();
@@ -48,7 +49,7 @@ contract VagalBrakeTest is Test {
     function testPreviewBrakeDanger() public {
         // Put ANS in DANGER state
         vm.warp(block.timestamp + 61);
-        ans.updateTone(3500, ANSStateManager.State.DANGER);
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
 
         Types.Intent memory intent = Types.Intent({
             executorId: 42,
@@ -73,9 +74,9 @@ contract VagalBrakeTest is Test {
     function testPreviewBrakeShutdown() public {
         // Put ANS in SHUTDOWN state
         vm.warp(block.timestamp + 61);
-        ans.updateTone(3500, ANSStateManager.State.DANGER);
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
         vm.warp(block.timestamp + 122);
-        ans.updateTone(8000, ANSStateManager.State.SHUTDOWN);
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% in ppm
 
         Types.Intent memory intent = Types.Intent({
             executorId: 42,
@@ -121,9 +122,9 @@ contract VagalBrakeTest is Test {
     function testIssueWithBrakeShutdown() public {
         // Put ANS in SHUTDOWN state
         vm.warp(block.timestamp + 61);
-        ans.updateTone(3500, ANSStateManager.State.DANGER);
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
         vm.warp(block.timestamp + 122);
-        ans.updateTone(8000, ANSStateManager.State.SHUTDOWN);
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% in ppm
 
         Types.Intent memory intent = Types.Intent({
             executorId: 42,
@@ -146,7 +147,7 @@ contract VagalBrakeTest is Test {
     function testLimitExceeded() public {
         // Put ANS in DANGER state (60% scaling)
         vm.warp(block.timestamp + 61);
-        ans.updateTone(3500, ANSStateManager.State.DANGER);
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
 
         Types.Intent memory intent = Types.Intent({
             executorId: 42,
