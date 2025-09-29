@@ -1,0 +1,277 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Vagus Protocol Overview",
+    "tags": ["vagus", "blockchain", "cross-chain"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Health Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\"evm-chain|wasm-chain|gateway-oracle|python-planner\"}",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "UP",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Alerts",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "{{alertname}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Rate Limiter Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vagus_rate_limiter_requests_total[5m])",
+            "legendFormat": "Requests - {{contract}}/{{chain}}"
+          },
+          {
+            "expr": "rate(vagus_rate_limiter_rejections_total[5m])",
+            "legendFormat": "Rejections - {{contract}}/{{chain}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Circuit Breaker States",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "vagus_circuit_breaker_state{state=\"closed\"}",
+            "legendFormat": "Closed"
+          },
+          {
+            "expr": "vagus_circuit_breaker_state{state=\"open\"}",
+            "legendFormat": "Open"
+          },
+          {
+            "expr": "vagus_circuit_breaker_state{state=\"half_open\"}",
+            "legendFormat": "Half-Open"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "ANS State Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "count by (state) (vagus_ans_state)",
+            "legendFormat": "{{state}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "ANS State Transitions",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vagus_ans_transitions_total[5m])",
+            "legendFormat": "{{from_state}} → {{to_state}}"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Capability Issuance Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vagus_capability_issued_total[5m])",
+            "legendFormat": "Issued - {{executor_id}}/{{chain}}"
+          },
+          {
+            "expr": "rate(vagus_capability_revoked_total[5m])",
+            "legendFormat": "Revoked - {{reason}}/{{chain}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Active Capabilities",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "vagus_capability_active_count",
+            "legendFormat": "{{executor_id}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Cross-Chain Hash Consistency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "vagus_cross_chain_hash_match",
+            "legendFormat": "{{component}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "MISMATCH",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "MATCH",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Cross-Chain Time Drift",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "abs(vagus_cross_chain_time_drift_seconds)",
+            "legendFormat": "Time Drift (seconds)"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Gas Usage Ratio",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "vagus_contract_gas_usage_ratio",
+            "legendFormat": "{{contract}}"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Contract Execution Time",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "vagus_contract_execution_time_seconds",
+            "legendFormat": "{{contract}}/{{method}}"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Governance Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vagus_governance_proposals_total[1h])",
+            "legendFormat": "Proposals"
+          },
+          {
+            "expr": "rate(vagus_governance_votes_total[1h])",
+            "legendFormat": "Votes"
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Emergency Pause Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "vagus_emergency_pause_active",
+            "legendFormat": "{{contract}}/{{chain}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "NORMAL",
+                    "color": "green"
+                  },
+                  "1": {
+                    "text": "PAUSED",
+                    "color": "red"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 15,
+        "title": "Error Rate by Component",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "rate(vagus_errors_total[5m])",
+            "legendFormat": "{{component}}/{{error_type}}"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

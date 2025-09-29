@@ -1,0 +1,205 @@
+# Vagus Protocol Alert Rules
+# Implements T-7: Comprehensive alerting for SRE monitoring
+
+groups:
+  - name: vagus.critical
+    rules:
+      # Circuit Breaker Critical Alerts
+      - alert: CircuitBreakerOpen
+        expr: vagus_circuit_breaker_state{state="open"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: safety
+        annotations:
+          summary: "Circuit breaker is OPEN"
+          description: "Circuit breaker for {{ $labels.contract }} on {{ $labels.chain }} is in OPEN state for 5+ minutes"
+          runbook_url: "https://docs.vagusprotocol.com/sre/circuit-breaker-open"
+
+      # Rate Limiting Critical Alerts
+      - alert: RateLimitExcessiveBlocking
+        expr: rate(vagus_rate_limiter_rejections_total[5m]) / rate(vagus_rate_limiter_requests_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Excessive rate limiting"
+          description: "Rate limiter blocking >50% of requests for {{ $labels.contract }} on {{ $labels.chain }}"
+          runbook_url: "https://docs.vagusprotocol.com/sre/rate-limiting-issues"
+
+      # ANS Critical Alerts
+      - alert: ANSStuckInDangerState
+        expr: vagus_ans_state{state="danger"} and up == 1
+        for: 1h
+        labels:
+          severity: critical
+          category: safety
+        annotations:
+          summary: "ANS stuck in DANGER state"
+          description: "ANS for executor {{ $labels.executor_id }} stuck in DANGER state for 1+ hour"
+          runbook_url: "https://docs.vagusprotocol.com/sre/ans-state-issues"
+
+      - alert: ANSStuckInShutdownState
+        expr: vagus_ans_state{state="shutdown"} and up == 1
+        for: 1h
+        labels:
+          severity: critical
+          category: safety
+        annotations:
+          summary: "ANS stuck in SHUTDOWN state"
+          description: "ANS for executor {{ $labels.executor_id }} stuck in SHUTDOWN state for 1+ hour"
+          runbook_url: "https://docs.vagusprotocol.com/sre/ans-state-issues"
+
+      # Cross-chain Critical Alerts
+      - alert: CrossChainHashMismatch
+        expr: vagus_cross_chain_hash_match == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: correctness
+        annotations:
+          summary: "Cross-chain hash mismatch"
+          description: "CBOR hash mismatch detected for {{ $labels.component }} between EVM and WASM"
+          runbook_url: "https://docs.vagusprotocol.com/sre/cross-chain-equivalence"
+
+      - alert: CrossChainTimeDrift
+        expr: abs(vagus_cross_chain_time_drift_seconds) > 30
+        for: 5m
+        labels:
+          severity: critical
+          category: correctness
+        annotations:
+          summary: "Cross-chain time drift"
+          description: "Time drift between chains exceeds 30 seconds"
+          runbook_url: "https://docs.vagusprotocol.com/sre/time-synchronization"
+
+      # Emergency Pause Alerts
+      - alert: EmergencyPauseActivated
+        expr: vagus_emergency_pause_active == 1
+        labels:
+          severity: critical
+          category: emergency
+        annotations:
+          summary: "Emergency pause activated"
+          description: "Emergency pause has been activated on {{ $labels.contract }} on {{ $labels.chain }}"
+          runbook_url: "https://docs.vagusprotocol.com/sre/emergency-protocols"
+
+  - name: vagus.warning
+    rules:
+      # Rate Limiting Warning Alerts
+      - alert: RateLimitHighBlocking
+        expr: rate(vagus_rate_limiter_rejections_total[5m]) / rate(vagus_rate_limiter_requests_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "High rate limiting"
+          description: "Rate limiter blocking >10% of requests for {{ $labels.contract }} on {{ $labels.chain }}"
+
+      # Circuit Breaker Warning Alerts
+      - alert: CircuitBreakerHalfOpen
+        expr: vagus_circuit_breaker_state{state="half_open"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: recovery
+        annotations:
+          summary: "Circuit breaker in recovery"
+          description: "Circuit breaker for {{ $labels.contract }} on {{ $labels.chain }} is in HALF_OPEN state"
+
+      # ANS Warning Alerts
+      - alert: ANSHighTransitionRate
+        expr: rate(vagus_ans_transitions_total[1h]) > 5
+        labels:
+          severity: warning
+          category: stability
+        annotations:
+          summary: "High ANS transition rate"
+          description: "ANS state transitions >5 per hour for executor {{ $labels.executor_id }}"
+
+      # Gas Usage Warnings
+      - alert: HighGasUsage
+        expr: vagus_contract_gas_usage_ratio > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High gas usage"
+          description: "Contract gas usage exceeds 90% of block limit"
+
+      # Capability Issuance Warnings
+      - alert: CapabilityIssuanceFailureRate
+        expr: rate(vagus_capability_issuance_failures_total[5m]) / rate(vagus_capability_issued_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: functionality
+        annotations:
+          summary: "High capability issuance failure rate"
+          description: "Capability issuance failure rate >5%"
+
+  - name: vagus.info
+    rules:
+      # Informational Alerts
+      - alert: NewANSStateTransition
+        expr: increase(vagus_ans_transitions_total[1m]) > 0
+        labels:
+          severity: info
+          category: normal_operation
+        annotations:
+          summary: "ANS state transition"
+          description: "ANS state changed from {{ $labels.from_state }} to {{ $labels.to_state }} for executor {{ $labels.executor_id }}"
+
+      - alert: GovernanceProposalSubmitted
+        expr: increase(vagus_governance_proposals_total[1m]) > 0
+        labels:
+          severity: info
+          category: governance
+        annotations:
+          summary: "New governance proposal"
+          description: "New governance proposal submitted on {{ $labels.chain }}"
+
+      - alert: CapabilityIssuanceSpike
+        expr: rate(vagus_capability_issued_total[1h]) > 2 * rate(vagus_capability_issued_total[1d])
+        for: 5m
+        labels:
+          severity: info
+          category: usage
+        annotations:
+          summary: "Capability issuance spike"
+          description: "Capability issuance rate doubled compared to daily average"
+
+  - name: vagus.health_checks
+    rules:
+      # System Health Checks
+      - alert: ChainConnectivityDown
+        expr: up{job=~"evm-chain|wasm-chain"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Chain connectivity down"
+          description: "Cannot connect to {{ $labels.chain }} chain"
+
+      - alert: ServiceDown
+        expr: up{job=~"gateway-oracle|python-planner"} == 0
+        for: 10m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service down"
+          description: "{{ $labels.job }} service is down"
+
+      - alert: MonitoringSystemDown
+        expr: up{job="prometheus"} == 0
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Monitoring system down"
+          description: "Prometheus monitoring system is down"

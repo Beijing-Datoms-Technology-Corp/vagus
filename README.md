@@ -41,6 +41,15 @@ python -m planner.examples.send_move_to
 - [x] M8 — 网关/Oracle 多链客户端与 Relayer（本地双链）
 - [x] M9 — 接口一致性测试（黄金规范套件）
 - [x] M10 — 文档/脚本与演示
+- [x] M11-M20 — Master Plan Complete! 🎉
+  - [x] P0 — ANS 滞后修复（三态机 + 连续计数 + 最少驻留时间）
+  - [x] T-1 — 规格补丁（I19-I26 不变量 + 新错误码 + 代码生成）
+  - [x] T-2 — ER1/ER6 实现（VagalBrake + preStateRoot 一致性）
+  - [x] T-3 — ER2 实现（Reflex 显式触发 + 分页撤销）
+  - [x] T-4 — ER3/ER5 实现（WASM 授权 + TTL 统一秒级）
+  - [x] T-5 — ER4 实现（CBOR 规范化 + 双哈希一致性）
+  - [x] T-6 — ER7/ER8 实现（RateLimiter/CircuitBreaker + Safe+Timelock/cw3-dao）
+  - [x] T-7 — 发布工程 + SRE（版本冻结 + SBOM + Runbook + 应急演练）
 
 ## Multichain Quick Start
 

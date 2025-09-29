@@ -115,4 +115,6 @@ pub enum VagusError {
     Unauthorized,
     #[error("Input parameters are invalid")]
     InvalidInput,
+    #[error("Contract is currently paused for emergency maintenance")]
+    ContractPaused,
 }

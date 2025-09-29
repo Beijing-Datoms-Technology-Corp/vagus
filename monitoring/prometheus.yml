@@ -1,0 +1,50 @@
+# Vagus Protocol Prometheus Configuration
+# Implements T-7: Observability stack with Prometheus metrics and dashboards
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # EVM Chain Metrics
+  - job_name: 'evm-chain'
+    static_configs:
+      - targets: ['localhost:8545']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # WASM Chain Metrics
+  - job_name: 'wasm-chain'
+    static_configs:
+      - targets: ['localhost:1317']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Gateway/Oracle Metrics
+  - job_name: 'gateway-oracle'
+    static_configs:
+      - targets: ['gateway:8080', 'oracle:8081']
+    scrape_interval: 30s
+
+  # Planner Metrics
+  - job_name: 'python-planner'
+    static_configs:
+      - targets: ['planner:8000']
+    scrape_interval: 30s
+
+  # Cross-chain Monitoring
+  - job_name: 'cross-chain-monitor'
+    static_configs:
+      - targets: ['monitor:9000']
+    scrape_interval: 60s

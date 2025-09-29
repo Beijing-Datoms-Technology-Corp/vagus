@@ -22,3 +22,4 @@ serde.workspace = true
 thiserror.workspace = true
 
 vagus-spec.workspace = true
+hex = "0.4"
