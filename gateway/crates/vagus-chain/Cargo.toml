@@ -31,7 +31,7 @@ async-trait.workspace = true
 ethers = { version = "2.0", features = ["abigen", "ws"], optional = true }
 
 # Cosmos support
-cosmrs = { version = "0.15", optional = true }
+cosmrs = { version = "0.15", features = ["rpc"], optional = true }
 tendermint-rpc = { version = "0.34", features = ["http-client", "websocket-client"], optional = true }
 
 # Common

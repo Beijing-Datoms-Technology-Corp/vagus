@@ -8,6 +8,7 @@ Requires-Python: >=3.11
 Requires-Dist: pydantic>=2.0.0
 Requires-Dist: web3>=6.0.0
 Requires-Dist: pyyaml>=6.0
+Requires-Dist: cbor2>=5.0.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: mypy>=1.0.0; extra == "dev"

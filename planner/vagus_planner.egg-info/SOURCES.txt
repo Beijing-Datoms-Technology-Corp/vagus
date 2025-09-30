@@ -1,5 +1,8 @@
 pyproject.toml
+tests/test_validation.py
 vagus_planner/__init__.py
+vagus_planner/codegen.py
+vagus_planner/deterministic_cbor.py
 vagus_planner/eip712.py
 vagus_planner/intents.py
 vagus_planner/schemas.py

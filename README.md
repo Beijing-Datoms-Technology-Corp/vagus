@@ -12,6 +12,8 @@ Vagus 在 LLM/Planner 与执行器之间引入链上"迷走神经层"，用 **�
 
 ## Quickstart
 
+Refer to the [Repository Guidelines](AGENTS.md) before contributing.
+
 ```bash
 # 1) 启动本地链
 ./infra/devnet/anvil.sh
