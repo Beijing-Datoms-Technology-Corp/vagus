@@ -203,12 +203,12 @@ pub mod cosmos {
     use super::*;
     use cosmrs::{
         tx::{Msg, SignDoc, SignerInfo},
-        rpc::HttpClient,
         crypto::secp256k1::SigningKey,
         AccountId,
     };
-    use tendermint_rpc::{Client, WebSocketClient, WebSocketClientUrl};
+    use tendermint_rpc::{Client, HttpClient, WebSocketClient, WebSocketClientUrl};
     use std::str::FromStr;
+    use url::Url;
 
     pub struct CosmosClient {
         rpc_client: HttpClient,
@@ -220,14 +220,15 @@ pub mod cosmos {
 
     impl CosmosClient {
         pub async fn new(config: ChainConfig) -> Result<Self> {
-            let rpc_client = HttpClient::new(&config.rpc_url)?;
+            let rpc_url = Url::parse(&config.rpc_url)?;
+            let rpc_client = HttpClient::new(rpc_url)?;
             let ws_url = WebSocketClientUrl::from_str(&config.rpc_url)?;
             let (ws_client, _) = WebSocketClient::new(ws_url).await?;
 
             let private_key_hex = config.private_key
                 .ok_or_else(|| anyhow::anyhow!("Private key required for Cosmos client"))?;
             let private_key_bytes = hex::decode(private_key_hex.trim_start_matches("0x"))?;
-            let signer = SigningKey::from_bytes(&private_key_bytes)?;
+            let signer = SigningKey::from_slice(&private_key_bytes)?;
 
             let account_id = signer.public_key().account_id("cosmos")?;
 
