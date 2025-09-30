@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use anyhow::Result;
 use thiserror::Error;
 
-pub use vagus_telemetry::{AfferentEvidencePacket, Intent, TokenMeta};
-pub use vagus_spec::{ANSState, Guard, VagusError};
+pub use vagus_telemetry::AfferentEvidencePacket;
+pub use vagus_spec::{Intent, TokenMeta, ANSState, Guard, VagusError};
 
-/// Unified chain client trait
+/// Core chain client operations (dyn compatible)
 #[async_trait::async_trait]
 pub trait ChainClient: Send + Sync {
     /// Submit afferent evidence packet
@@ -28,11 +28,6 @@ pub trait ChainClient: Send + Sync {
     /// Revoke capability token
     async fn revoke_capability(&self, token_id: &str, reason: u8) -> Result<()>;
 
-    /// Subscribe to chain events
-    async fn subscribe_events<F>(&self, callback: F) -> Result<()>
-    where
-        F: Fn(Event) + Send + Sync + 'static;
-
     /// Get current ANS guard for action
     async fn get_guard(&self, action_id: &[u8; 32]) -> Result<Guard>;
 
@@ -41,6 +36,15 @@ pub trait ChainClient: Send + Sync {
 
     /// Update ANS tone and state
     async fn update_tone(&self, vti: u64, suggested_state: ANSState) -> Result<()>;
+}
+
+/// Event subscription capability (separate trait for dyn compatibility)
+#[async_trait::async_trait]
+pub trait EventSubscriber: Send + Sync {
+    /// Subscribe to chain events
+    async fn subscribe_events<F>(&self, callback: F) -> Result<()>
+    where
+        F: Fn(Event) + Send + Sync + 'static;
 }
 
 /// Chain types
@@ -165,14 +169,6 @@ pub mod evm {
             todo!("Implement EVM capability revocation")
         }
 
-        async fn subscribe_events<F>(&self, _callback: F) -> Result<()>
-        where
-            F: Fn(Event) + Send + Sync + 'static,
-        {
-            // Implementation would subscribe to contract events
-            todo!("Implement EVM event subscription")
-        }
-
         async fn get_guard(&self, action_id: &[u8; 32]) -> Result<Guard> {
             // Implementation would call ANSStateManager.guardFor
             todo!("Implement EVM guard query")
@@ -188,6 +184,17 @@ pub mod evm {
             todo!("Implement EVM tone update")
         }
     }
+
+    #[async_trait::async_trait]
+    impl EventSubscriber for EVMClient {
+        async fn subscribe_events<F>(&self, _callback: F) -> Result<()>
+        where
+            F: Fn(Event) + Send + Sync + 'static,
+        {
+            // Implementation would subscribe to contract events
+            todo!("Implement EVM event subscription")
+        }
+    }
 }
 
 /// Cosmos client implementation
@@ -200,7 +207,8 @@ pub mod cosmos {
         crypto::secp256k1::SigningKey,
         AccountId,
     };
-    use tendermint_rpc::{Client, WebSocketClient};
+    use tendermint_rpc::{Client, WebSocketClient, WebSocketClientUrl};
+    use std::str::FromStr;
 
     pub struct CosmosClient {
         rpc_client: HttpClient,
@@ -213,11 +221,13 @@ pub mod cosmos {
     impl CosmosClient {
         pub async fn new(config: ChainConfig) -> Result<Self> {
             let rpc_client = HttpClient::new(&config.rpc_url)?;
-            let (ws_client, _) = WebSocketClient::new(&config.rpc_url).await?;
+            let ws_url = WebSocketClientUrl::from_str(&config.rpc_url)?;
+            let (ws_client, _) = WebSocketClient::new(ws_url).await?;
 
-            let signer = config.private_key
-                .ok_or_else(|| anyhow::anyhow!("Private key required for Cosmos client"))?
-                .parse::<SigningKey>()?;
+            let private_key_hex = config.private_key
+                .ok_or_else(|| anyhow::anyhow!("Private key required for Cosmos client"))?;
+            let private_key_bytes = hex::decode(private_key_hex.trim_start_matches("0x"))?;
+            let signer = SigningKey::from_bytes(&private_key_bytes)?;
 
             let account_id = signer.public_key().account_id("cosmos")?;
 
@@ -253,14 +263,6 @@ pub mod cosmos {
             todo!("Implement Cosmos capability revocation")
         }
 
-        async fn subscribe_events<F>(&self, _callback: F) -> Result<()>
-        where
-            F: Fn(Event) + Send + Sync + 'static,
-        {
-            // Implementation would subscribe to contract events via WebSocket
-            todo!("Implement Cosmos event subscription")
-        }
-
         async fn get_guard(&self, action_id: &[u8; 32]) -> Result<Guard> {
             // Implementation would query ANSStateManager contract
             todo!("Implement Cosmos guard query")
@@ -274,6 +276,17 @@ pub mod cosmos {
         async fn update_tone(&self, vti: u64, suggested_state: ANSState) -> Result<()> {
             // Implementation would submit UpdateTone message to ANSStateManager contract
             todo!("Implement Cosmos tone update")
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl EventSubscriber for CosmosClient {
+        async fn subscribe_events<F>(&self, _callback: F) -> Result<()>
+        where
+            F: Fn(Event) + Send + Sync + 'static,
+        {
+            // Implementation would subscribe to contract events via WebSocket
+            todo!("Implement Cosmos event subscription")
         }
     }
 }
