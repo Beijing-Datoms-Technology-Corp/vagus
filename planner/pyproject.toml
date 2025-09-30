@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "web3>=6.0.0",
     "pyyaml>=6.0",
+    "cbor2>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -37,4 +38,3 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-cbor2>=5.0.0

@@ -52,7 +52,7 @@ contract VagalBrakeTest is Test {
         ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
 
         Types.Intent memory intent = Types.Intent({
-            executorId: 42,
+            executorId: EXECUTOR_ID,
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
@@ -73,13 +73,18 @@ contract VagalBrakeTest is Test {
 
     function testPreviewBrakeShutdown() public {
         // Put ANS in SHUTDOWN state
+        // First enter DANGER state (3 consecutive readings > 30%)
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 1
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 2
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 3 -> DANGER
+
+        // Wait for dwell time and enter SHUTDOWN (2 consecutive readings > 70%)
         vm.warp(block.timestamp + 61);
-        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
-        vm.warp(block.timestamp + 122);
-        ans.updateTone(EXECUTOR_ID, 800000); // 80% in ppm
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% - reading 1
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% - reading 2 -> SHUTDOWN
 
         Types.Intent memory intent = Types.Intent({
-            executorId: 42,
+            executorId: EXECUTOR_ID,
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
@@ -121,13 +126,18 @@ contract VagalBrakeTest is Test {
 
     function testIssueWithBrakeShutdown() public {
         // Put ANS in SHUTDOWN state
+        // First enter DANGER state (3 consecutive readings > 30%)
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 1
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 2
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 3 -> DANGER
+
+        // Wait for dwell time and enter SHUTDOWN (2 consecutive readings > 70%)
         vm.warp(block.timestamp + 61);
-        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
-        vm.warp(block.timestamp + 122);
-        ans.updateTone(EXECUTOR_ID, 800000); // 80% in ppm
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% - reading 1
+        ans.updateTone(EXECUTOR_ID, 800000); // 80% - reading 2 -> SHUTDOWN
 
         Types.Intent memory intent = Types.Intent({
-            executorId: 42,
+            executorId: EXECUTOR_ID,
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),
@@ -146,11 +156,13 @@ contract VagalBrakeTest is Test {
 
     function testLimitExceeded() public {
         // Put ANS in DANGER state (60% scaling)
-        vm.warp(block.timestamp + 61);
-        ans.updateTone(EXECUTOR_ID, 350000); // 35% in ppm
+        // Need 3 consecutive readings above danger threshold (30%)
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 1
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 2
+        ans.updateTone(EXECUTOR_ID, 350000); // 35% - reading 3 -> DANGER
 
         Types.Intent memory intent = Types.Intent({
-            executorId: 42,
+            executorId: EXECUTOR_ID,
             actionId: keccak256("test_action"),
             params: "",
             envelopeHash: keccak256("envelope"),

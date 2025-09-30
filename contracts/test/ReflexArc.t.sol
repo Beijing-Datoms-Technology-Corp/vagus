@@ -64,8 +64,11 @@ contract ReflexArcTest is Test {
     }
 
     function testReflexTrigger() public {
+        // Reset time to ensure clean state
+        vm.warp(1000000);
+
         // Post some evidence for executor 999 (which triggers reflex)
-        inbox.postAEP(999, keccak256("state"), keccak256("metrics"), "");
+        inbox.postAEP(999, bytes32(uint256(1)), bytes32(uint256(2)), bytes(""));
 
         // Issue some tokens for executor 999
         Types.Intent memory intent = Types.Intent({
@@ -110,8 +113,11 @@ contract ReflexArcTest is Test {
     }
 
     function testRateLimiting() public {
+        // Reset time to ensure clean state
+        vm.warp(2000000);
+
         // Post evidence
-        inbox.postAEP(999, keccak256("state"), keccak256("metrics"), "");
+        inbox.postAEP(999, bytes32(uint256(1)), bytes32(uint256(2)), bytes(""));
 
         // Issue token
         Types.Intent memory intent = Types.Intent({

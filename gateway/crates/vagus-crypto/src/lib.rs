@@ -9,9 +9,7 @@ use ethers::signers::Signer;
 use k256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
-use cbor4ii::core::enc::Encoder;
-use cbor4ii::core::dec::Decoder;
-use std::collections::BTreeMap;
+use serde_cbor;
 
 /// EIP-712 Domain for Vagus protocol
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -294,9 +292,7 @@ pub mod cbor {
     pub fn encode_deterministic<T: Serialize>(data: &T) -> Result<Vec<u8>, anyhow::Error> {
         // Use serde_cbor with canonical options
         // For now, use simple encoding - in production would implement full deterministic encoding
-        let mut encoder = Encoder::new(Vec::new());
-        data.serialize(&mut encoder)?;
-        Ok(encoder.into_writer())
+        serde_cbor::to_vec(data).map_err(Into::into)
     }
 
     /// Compute SHA256 hash of CBOR bytes

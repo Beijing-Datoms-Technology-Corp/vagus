@@ -54,7 +54,7 @@ contract ReflexArc is Events {
         }
 
         // Trigger reflex for DANGER or SHUTDOWN states
-        if (newState == 2 || newState == 3) { // DANGER = 2, SHUTDOWN = 3
+        if (newState == 1 || newState == 2) { // DANGER = 1, SHUTDOWN = 2
             _triggerReflexPaginated(executorId, "state_change", 0, 10); // Start with first 10 tokens
             lastReflexTrigger[executorId] = block.timestamp;
         }

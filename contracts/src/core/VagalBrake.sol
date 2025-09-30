@@ -83,9 +83,9 @@ contract VagalBrake is Events {
         // TODO: Parse intent.params JSON/ABI encoded data and scale brakeable fields
         // For now, we assume the intent parameters are already validated and just hash them
 
-        // Apply scaling to brakeable limits
-        uint256 scaledMaxDuration = (intent.maxDurationMs * scalingFactor) / 10000;
-        uint256 scaledMaxEnergy = (intent.maxEnergyJ * scalingFactor) / 10000;
+        // Apply scaling to brakeable limits using safe arithmetic
+        uint256 scaledMaxDuration = (uint256(intent.maxDurationMs) * scalingFactor) / 10000;
+        uint256 scaledMaxEnergy = (uint256(intent.maxEnergyJ) * scalingFactor) / 10000;
 
         // Validate against absolute limits
         if (scaledMaxDuration > Types.MAX_DURATION_MS) {
@@ -109,9 +109,9 @@ contract VagalBrake is Events {
     /// @param scalingFactor The scaling factor from ANS
     /// @return scaledLimitsHash Hash of scaled limits
     function _scaleAndValidateIntentPreview(Types.Intent calldata intent, uint256 scalingFactor) internal pure returns (bytes32) {
-        // Apply scaling to brakeable limits
-        uint256 scaledMaxDuration = (intent.maxDurationMs * scalingFactor) / 10000;
-        uint256 scaledMaxEnergy = (intent.maxEnergyJ * scalingFactor) / 10000;
+        // Apply scaling to brakeable limits using safe arithmetic
+        uint256 scaledMaxDuration = (uint256(intent.maxDurationMs) * scalingFactor) / 10000;
+        uint256 scaledMaxEnergy = (uint256(intent.maxEnergyJ) * scalingFactor) / 10000;
 
         // For preview, we don't revert on limits - just return the hash
         return keccak256(abi.encodePacked(
