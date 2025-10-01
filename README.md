@@ -31,7 +31,14 @@ cargo run -p vagus-gateway -- --executor-id 12 --sim
 python -m planner.examples.send_move_to
 ```
 
-## Development Status
+## Project Status
+
+**Current Version**: 0.1.0-alpha  
+**Status**: Early Development - Core functionality implemented, actively developing additional features  
+**Stability**: Alpha - API may change, not recommended for production use  
+**Linux Foundation**: Application submitted, awaiting review
+
+### Development Milestones
 
 - [x] M1 — 脚手架 + CI 绿灯
 - [x] M2 — 核心合约可用（最小集）
