@@ -2,7 +2,10 @@
 pragma solidity ^0.8.24;
 
 import "./Events.sol";
-import "./Interfaces.sol";
+import "../../interfaces/IANSStateManager.sol";
+import "../../interfaces/ICapabilityIssuer.sol";
+import "../../interfaces/IAfferentInbox.sol";
+import "../../interfaces/IReflexArc.sol";
 
 /// @title Reflex Arc
 /// @notice Triggers automated revocation based on afferent evidence analysis
@@ -31,15 +34,15 @@ contract ReflexArc is Events {
     uint256 public constant ENERGY_LOW_DANGER = 10;      // percent
     uint256 public constant JERK_DANGER = 1000;          // mm/s²
 
-    /// @notice Constructor
+    /// @notice Constructor with dependency injection
     /// @param _afferentInbox Address of the AfferentInbox contract
     /// @param _capabilityIssuer Address of the CapabilityIssuer contract
-    constructor(address _afferentInbox, address _capabilityIssuer) {
+    /// @param _ansStateManager Address of the ANS State Manager contract
+    constructor(address _afferentInbox, address _capabilityIssuer, address _ansStateManager) {
         owner = msg.sender;
         afferentInbox = _afferentInbox;
         capabilityIssuer = _capabilityIssuer;
-        // For now, ansStateManager will be set separately or derived from capabilityIssuer
-        // In a full implementation, this should be passed as a parameter
+        ansStateManager = _ansStateManager;
     }
 
     /// @notice Trigger reflex when ANS state changes (ER2)

@@ -3,7 +3,11 @@ pragma solidity ^0.8.24;
 
 import "./Events.sol";
 import "./Types.sol";
-import "./Interfaces.sol";
+import "../../interfaces/IANSStateManager.sol";
+import "../../interfaces/ICapabilityIssuer.sol";
+import "../../interfaces/IAfferentInbox.sol";
+import "../../interfaces/IVagalBrake.sol";
+import "../../interfaces/IReflexArc.sol";
 import "./GeneratedTypes.sol";
 
 /// @title Capability Token Issuer
@@ -27,11 +31,14 @@ contract CapabilityIssuer is Events {
     /// @notice AfferentInbox contract for state root verification
     address public afferentInbox;
 
-    /// @notice ReflexArc contract authorized to revoke tokens
-    address public reflexArc;
-
     /// @notice VagalBrake contract for safety validation
     address public vagalBrake;
+
+    /// @notice ANS State Manager contract
+    address public ansStateManager;
+
+    /// @notice ReflexArc contract authorized to revoke tokens
+    address public reflexArc;
 
     /// @notice Rate limiter configuration
     struct RateLimitConfig {
@@ -61,13 +68,22 @@ contract CapabilityIssuer is Events {
     uint256 public circuitBreakerTimeout = 300; // 5 minutes timeout
     uint256 public circuitBreakerRecovery = 3;  // Successes needed in half-open
 
-    /// @notice Constructor
+    /// @notice Constructor with dependency injection
     /// @param _afferentInbox Address of the AfferentInbox contract
     /// @param _vagalBrake Address of the VagalBrake contract
-    constructor(address _afferentInbox, address _vagalBrake) {
+    /// @param _ansStateManager Address of the ANS State Manager contract
+    /// @param _reflexArc Address of the ReflexArc contract
+    constructor(
+        address _afferentInbox,
+        address _vagalBrake,
+        address _ansStateManager,
+        address _reflexArc
+    ) {
         owner = msg.sender;
         afferentInbox = _afferentInbox;
         vagalBrake = _vagalBrake;
+        ansStateManager = _ansStateManager;
+        reflexArc = _reflexArc;
 
         // Set default rate limits (1000 requests per hour)
         globalRateLimit = RateLimitConfig({

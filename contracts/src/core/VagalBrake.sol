@@ -3,7 +3,9 @@ pragma solidity ^0.8.24;
 
 import "./Events.sol";
 import "./Types.sol";
-import "./Interfaces.sol";
+import "../../interfaces/IANSStateManager.sol";
+import "../../interfaces/ICapabilityIssuer.sol";
+import "../../interfaces/IVagalBrake.sol";
 
 /// @title Vagal Brake
 /// @notice Applies dynamic scaling to intents based on ANS state
@@ -23,7 +25,7 @@ contract VagalBrake is Events {
     /// @notice Custom error for limit exceeded
     error ANSLimitExceeded(string field, uint256 requested, uint256 allowed);
 
-    /// @notice Constructor
+    /// @notice Constructor with dependency injection
     /// @param _ansStateManager Address of the ANS State Manager
     /// @param _capabilityIssuer Address of the Capability Issuer
     constructor(address _ansStateManager, address _capabilityIssuer) {

@@ -9,6 +9,10 @@ Vagus 在 LLM/Planner 与执行器之间引入链上"迷走神经层"，用 **�
 - **oracle/**: Rust Tone Oracle (VTI computation + ANS update)
 - **planner/**: Python tools (schema → intent → EIP‑712)
 - **schemas/**: YAML schemas & policies for mechanical arm (MVP)
+- **L1-adapter/**: L1 blockchain adapters for different chains
+  - **vagus-chain/**: Native protocol implementation for Vagus L1
+  - **ethereum/**: Ethereum/EVM-compatible chain adapter (planned)
+  - **cosmos/**: Cosmos/CosmWasm chain adapter (planned)
 
 ## Quickstart
 
