@@ -16,6 +16,9 @@ Vagus 在 LLM/Planner 与执行器之间引入链上"迷走神经层"，用 **�
 - **反射弧集成**: 检测共识分歧时自动触发安全响应
 - **Tone Oracle 增强**: 监控投票分歧，动态调整 VTI
 
+### 📖 详细文档
+[VagusMaker 完整技术文档](docs/VagusMaker.md) - 包含算法详解、API参考、部署指南和安全分析
+
 ## Components
 
 - **contracts/**: Solidity/Foundry contracts (ANSState, AfferentInbox, VagalBrake, CapabilityIssuer, ReflexArc, …)
