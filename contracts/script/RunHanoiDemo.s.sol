@@ -120,17 +120,28 @@ contract RunHanoiDemo is Script {
 
     /// @notice Create initial state for 10-disk Hanoi Tower
     function _create10DiskInitialState() internal pure returns (bytes memory) {
+        bytes memory disk10 = abi.encodePacked(bytes1(0x0A));
+        bytes memory disk9 = abi.encodePacked(bytes1(0x09));
+        bytes memory disk8 = abi.encodePacked(bytes1(0x08));
+        bytes memory disk7 = abi.encodePacked(bytes1(0x07));
+        bytes memory disk6 = abi.encodePacked(bytes1(0x06));
+        bytes memory disk5 = abi.encodePacked(bytes1(0x05));
+        bytes memory disk4 = abi.encodePacked(bytes1(0x04));
+        bytes memory disk3 = abi.encodePacked(bytes1(0x03));
+        bytes memory disk2 = abi.encodePacked(bytes1(0x02));
+        bytes memory disk1 = abi.encodePacked(bytes1(0x01));
+
         bytes[] memory peg0 = new bytes[](10);
-        peg0[0] = bytes1(0x0A); // Disk 10 (largest)
-        peg0[1] = bytes1(0x09); // Disk 9
-        peg0[2] = bytes1(0x08); // Disk 8
-        peg0[3] = bytes1(0x07); // Disk 7
-        peg0[4] = bytes1(0x06); // Disk 6
-        peg0[5] = bytes1(0x05); // Disk 5
-        peg0[6] = bytes1(0x04); // Disk 4
-        peg0[7] = bytes1(0x03); // Disk 3
-        peg0[8] = bytes1(0x02); // Disk 2
-        peg0[9] = bytes1(0x01); // Disk 1 (smallest)
+        peg0[0] = disk10; // Disk 10 (largest)
+        peg0[1] = disk9;  // Disk 9
+        peg0[2] = disk8;  // Disk 8
+        peg0[3] = disk7;  // Disk 7
+        peg0[4] = disk6;  // Disk 6
+        peg0[5] = disk5;  // Disk 5
+        peg0[6] = disk4;  // Disk 4
+        peg0[7] = disk3;  // Disk 3
+        peg0[8] = disk2;  // Disk 2
+        peg0[9] = disk1;  // Disk 1 (smallest)
 
         bytes[][] memory pegs = new bytes[][](3);
         pegs[0] = peg0;
@@ -176,7 +187,7 @@ contract RunHanoiDemo is Script {
             totalVotes++;
         }
 
-        console.log("  Votes cast:", totalVotes, "(correct:", correctVotes, ")");
+        console.log("  Votes cast: %d (correct: %d)", totalVotes, correctVotes);
     }
 
     /// @notice Get the theoretically correct move for a given step in Hanoi Tower
