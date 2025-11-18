@@ -56,8 +56,8 @@ contract ReputationWeightedVoter is MicroTaskManager {
     ) {
         repToken = ReputationToken(_repToken);
         validator = RedFlagValidator(_validator);
-        // Set reflex arc via parent class setter
-        setReflexArc(_reflexArc);
+        // Set reflex arc directly (will be accessible via parent class)
+        reflexArc = _reflexArc;
     }
 
     /// @notice Cast a vote for a task step
