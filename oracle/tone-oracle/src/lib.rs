@@ -17,6 +17,10 @@ pub struct SensorMetrics {
     pub energy_consumption_j: f64,
     pub jerk_m_s3: f64,
     pub timestamp_ms: u64,
+    // VagusMaker voting metrics (added for consensus monitoring)
+    pub candidate_moves: Option<u64>,      // Number of different move proposals in current voting round
+    pub vote_duration_ms: Option<u64>,     // Time taken for consensus to be reached
+    pub avg_vote_duration_ms: Option<u64>, // Average consensus time across recent rounds
 }
 
 /// VTI calculation result
@@ -82,12 +86,25 @@ impl VtiCalculator {
         let mut total_temp = 0.0;
         let mut total_energy = 0.0;
         let mut total_jerk = 0.0;
+        let mut total_candidate_moves = 0.0;
+        let mut total_vote_duration = 0.0;
+        let mut total_avg_vote_duration = 0.0;
+        let mut voting_metrics_count = 0;
 
         for metrics in &self.metrics_window {
             total_distance += metrics.human_distance_mm;
             total_temp += metrics.temperature_celsius;
             total_energy += metrics.energy_consumption_j;
             total_jerk += metrics.jerk_m_s3;
+
+            // Accumulate VagusMaker voting metrics
+            if let (Some(moves), Some(duration), Some(avg_duration)) =
+                (metrics.candidate_moves, metrics.vote_duration_ms, metrics.avg_vote_duration_ms) {
+                total_candidate_moves += moves as f64;
+                total_vote_duration += duration as f64;
+                total_avg_vote_duration += avg_duration as f64;
+                voting_metrics_count += 1;
+            }
         }
 
         let count = self.metrics_window.len() as f64;
@@ -96,15 +113,17 @@ impl VtiCalculator {
         let avg_energy = total_energy / count;
         let avg_jerk = total_jerk / count;
 
-        // Simple VTI calculation (MVP)
+        // Enhanced VTI calculation with VagusMaker consensus monitoring
         // Higher risk factors increase VTI:
         // - Close human distance (< 500mm)
         // - High temperature (> 50°C)
         // - High energy consumption
         // - High jerk (sudden movements)
+        // - Voting consensus issues (NEW: VagusMaker integration)
 
         let mut risk_score = 0.0;
 
+        // Physical risk factors (existing)
         // Distance risk (inverse relationship)
         if avg_distance < 500.0 {
             risk_score += (500.0 - avg_distance) / 500.0 * 30.0;
@@ -122,6 +141,23 @@ impl VtiCalculator {
         // Jerk risk
         let jerk_risk = (avg_jerk / 10.0).min(1.0) * 25.0;
         risk_score += jerk_risk;
+
+        // VagusMaker consensus risk factors (NEW)
+        if voting_metrics_count > 0 {
+            let avg_candidate_moves = total_candidate_moves / voting_metrics_count as f64;
+            let avg_vote_duration = total_vote_duration / voting_metrics_count as f64;
+            let avg_vote_duration_baseline = total_avg_vote_duration / voting_metrics_count as f64;
+
+            // High number of candidate moves indicates consensus difficulty
+            if avg_candidate_moves >= 4.0 {
+                risk_score += 30.0; // Significant risk increase for fragmented consensus
+            }
+
+            // Slow consensus resolution indicates system stress
+            if avg_vote_duration > avg_vote_duration_baseline * 3.0 {
+                risk_score += 20.0; // Risk increase for slow consensus
+            }
+        }
 
         // Clamp to 0-100
         let clamped_risk = risk_score.max(0.0).min(100.0);

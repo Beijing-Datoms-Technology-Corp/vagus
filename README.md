@@ -2,6 +2,20 @@
 
 Vagus 在 LLM/Planner 与执行器之间引入链上"迷走神经层"，用 **传入证据(Afferent)**、**张力(VTI)与三态(ANS)**、**制动(Vagal Brake)**、**反射弧(Reflex)**、**短时效能力令牌(Capability Token)** 来防止不对齐与危险动作。
 
+## 🧠 VagusMaker: Blockchain-Native MAKER Consensus
+
+**VagusMaker = Vagus 安全 + MAKER 正确**
+
+全球首个区块链原生 MAKER 论文完整链上版，理论上支持 20 盘河内塔（1,048,575 步）零错误完成。通过信誉加权投票 + k-ahead-by 共识算法，将人类智慧与 AI 推理相结合，实现确定性任务的分布式验证。
+
+### 核心特性
+- **ERC-5192 Soulbound 声誉代币**: 投票参与者获得不可转让的声誉证明
+- **信誉加权投票**: 基于声誉的投票权重，防止 Sybil 攻击
+- **k-ahead-by 共识**: First-to-ahead-by-k 算法确保快速且稳定的共识
+- **红旗验证器**: 验证河内塔规则，惩罚恶意投票
+- **反射弧集成**: 检测共识分歧时自动触发安全响应
+- **Tone Oracle 增强**: 监控投票分歧，动态调整 VTI
+
 ## Components
 
 - **contracts/**: Solidity/Foundry contracts (ANSState, AfferentInbox, VagalBrake, CapabilityIssuer, ReflexArc, …)
@@ -18,6 +32,7 @@ Vagus 在 LLM/Planner 与执行器之间引入链上"迷走神经层"，用 **�
 
 Refer to the [Repository Guidelines](AGENTS.md) before contributing.
 
+### Core Vagus Protocol
 ```bash
 # 1) 启动本地链
 ./infra/devnet/anvil.sh
@@ -33,6 +48,21 @@ cargo run -p vagus-gateway -- --executor-id 12 --sim
 
 # 5) 生成并提交一个 Intent（Python）
 python -m planner.examples.send_move_to
+```
+
+### VagusMaker Hanoi Tower Demo
+```bash
+# 1) 启动本地链
+./infra/devnet/anvil.sh
+
+# 2) 部署 VagusMaker 合约
+forge script script/DeployVagusMaker.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
+
+# 3) 运行河内塔演示
+forge script script/RunHanoiDemo.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
+
+# 4) 运行测试
+forge test --match-path test/vagusmaker/Hanoi.t.sol -vv
 ```
 
 ## Project Status

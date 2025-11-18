@@ -29,6 +29,10 @@ struct SubmitMetricsRequest {
     energy_consumption_j: f64,
     jerk_m_s3: f64,
     timestamp_ms: Option<u64>,
+    // VagusMaker voting metrics (optional for backward compatibility)
+    candidate_moves: Option<u64>,      // Number of different move proposals in current voting round
+    vote_duration_ms: Option<u64>,     // Time taken for consensus to be reached
+    avg_vote_duration_ms: Option<u64>, // Average consensus time across recent rounds
 }
 
 /// HTTP response for VTI computation
@@ -272,6 +276,10 @@ async fn submit_metrics(
                 .unwrap()
                 .as_millis() as u64
         }),
+        // VagusMaker voting metrics
+        candidate_moves: request.candidate_moves,
+        vote_duration_ms: request.vote_duration_ms,
+        avg_vote_duration_ms: request.avg_vote_duration_ms,
     };
 
     // Process metrics (now async due to potential blockchain calls)
