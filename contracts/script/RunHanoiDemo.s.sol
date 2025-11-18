@@ -182,7 +182,7 @@ contract RunHanoiDemo is Script {
             }
 
             vm.prank(participant);
-            voter.castVote(taskId, step, move, string(abi.encodePacked("proof_step_", step, "_participant_", i)));
+            voter.castVote(taskId, step, move, abi.encodePacked("proof_step_", step, "_participant_", i));
 
             totalVotes++;
         }

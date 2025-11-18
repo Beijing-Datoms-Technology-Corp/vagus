@@ -19,7 +19,7 @@ contract RedFlagValidator {
     /// @notice Helper to convert bytes1 to bytes safely
     function _bytes1ToBytes(bytes1 b) internal pure returns (bytes memory) {
         bytes memory result = new bytes(1);
-        result[0] = bytes(b)[0];
+        result[0] = b;
         return result;
     }
 
