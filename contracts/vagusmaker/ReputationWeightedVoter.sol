@@ -5,6 +5,7 @@ import {MicroTaskManager} from "./MicroTaskManager.sol";
 import {ReputationToken} from "./ReputationToken.sol";
 import {RedFlagValidator} from "./RedFlagValidator.sol";
 import {ReflexArc} from "../../src/core/ReflexArc.sol";
+import {IReflexArc} from "../../interfaces/IReflexArc.sol";
 
 /// @title Reputation Weighted Voter for VagusMaker
 /// @notice Implements k-ahead-by consensus algorithm for micro-task voting
@@ -38,9 +39,6 @@ contract ReputationWeightedVoter is MicroTaskManager {
     /// @notice Red flag validator contract
     RedFlagValidator public immutable validator;
 
-    /// @notice Reflex arc contract for security responses
-    ReflexArc public immutable reflexArc;
-
     /// @notice Event emitted when a vote is cast
     event VoteCast(uint256 indexed taskId, uint256 indexed step, address indexed voter, uint8 from, uint8 to, uint248 weight);
 
@@ -58,7 +56,8 @@ contract ReputationWeightedVoter is MicroTaskManager {
     ) {
         repToken = ReputationToken(_repToken);
         validator = RedFlagValidator(_validator);
-        reflexArc = ReflexArc(_reflexArc);
+        // Set reflex arc via parent class setter
+        setReflexArc(_reflexArc);
     }
 
     /// @notice Cast a vote for a task step
@@ -96,8 +95,14 @@ contract ReputationWeightedVoter is MicroTaskManager {
         if (!valid) {
             // Penalize invalid vote
             repToken.updateReputation(msg.sender, -100);
-            // Trigger reflex arc for malicious voting
-            reflexArc.on_aep(uint256(uint160(msg.sender)));
+            // Trigger reflex arc for malicious voting (via parent class)
+            if (reflexArc != address(0)) {
+                try IReflexArc(reflexArc).on_aep(uint256(uint160(msg.sender))) {
+                    // Successfully triggered reflex arc
+                } catch {
+                    // Reflex arc call failed, but don't revert the transaction
+                }
+            }
             return;
         }
 
