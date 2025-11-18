@@ -102,14 +102,14 @@ contract RunHanoiDemo is Script {
         }
 
         // Check final task state
-        (,,,,uint256 currentStep,,bool completed) = voter.getTask(taskId);
-        console.log("Task progress:", currentStep, "/", 1023, "steps completed");
-        console.log("Task completed:", completed);
+        MicroTaskManager.Task memory task = voter.getTask(taskId);
+        console.log("Task progress: %d / 1023 steps completed", task.currentStep);
+        console.log("Task completed: %s", task.completed ? "true" : "false");
 
         console.log("");
         console.log("==========================================");
         console.log("VagusMaker 10-Disk Demo Results:");
-        console.log("- Successfully processed", currentStep, "steps");
+        console.log("- Successfully processed %d steps", task.currentStep);
         console.log("- Demonstrated scalability for 1M+ step completion");
         console.log("- First-to-ahead-by-k consensus algorithm working");
         console.log("- Reputation-weighted voting functional");

@@ -44,11 +44,13 @@ contract RedFlagValidator {
         }
 
         // 5. Get disk size from top of source peg
-        uint8 diskSize = uint8(pegs[proposed.from][pegs[proposed.from].length - 1]);
+        bytes1 diskBytes = pegs[proposed.from][pegs[proposed.from].length - 1];
+        uint8 diskSize = uint8(diskBytes);
 
         // 6. Check destination peg rules (cannot place larger disk on smaller disk)
         if (pegs[proposed.to].length > 0) {
-            uint8 topDisk = uint8(pegs[proposed.to][pegs[proposed.to].length - 1]);
+            bytes1 topDiskBytes = pegs[proposed.to][pegs[proposed.to].length - 1];
+            uint8 topDisk = uint8(topDiskBytes);
             if (diskSize >= topDisk) {
                 return (false, "Cannot place larger disk on smaller disk");
             }
@@ -79,7 +81,8 @@ contract RedFlagValidator {
         }
 
         // Apply the move: remove from source, add to destination
-        uint8 diskSize = uint8(newPegs[move.from][newPegs[move.from].length - 1]);
+        bytes1 diskBytes = newPegs[move.from][newPegs[move.from].length - 1];
+        uint8 diskSize = uint8(diskBytes);
 
         // Remove from source
         bytes[] memory sourcePeg = new bytes[](newPegs[move.from].length - 1);
@@ -93,7 +96,7 @@ contract RedFlagValidator {
         for (uint256 i = 0; i < newPegs[move.to].length; i++) {
             destPeg[i] = newPegs[move.to][i];
         }
-        destPeg[newPegs[move.to].length] = bytes1(diskSize);
+        destPeg[newPegs[move.to].length] = diskBytes;
         newPegs[move.to] = destPeg;
 
         // Encode new state
@@ -127,7 +130,8 @@ contract RedFlagValidator {
         // Check if disks are in correct order (largest at bottom)
         for (uint256 i = 0; i < numDisks; i++) {
             uint8 expectedSize = uint8(numDisks - i); // Largest at bottom
-            uint8 actualSize = uint8(pegs[targetPeg][i]);
+            bytes1 actualBytes = pegs[targetPeg][i];
+            uint8 actualSize = uint8(actualBytes);
             if (actualSize != expectedSize) {
                 return false;
             }

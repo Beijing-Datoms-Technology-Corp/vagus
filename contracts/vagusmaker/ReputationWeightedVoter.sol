@@ -141,10 +141,10 @@ contract ReputationWeightedVoter is MicroTaskManager {
             return ConsensusResult(false, 0, 0, 0);
         }
 
-        // Count votes by move using mapping (from*3 + to) to total weight
-        mapping(uint16 => uint256) storage moveWeights;
+        // Count votes by move using temporary mapping
         uint16 maxMove = 0;
         uint256 maxWeight = 0;
+        uint256[9] memory moveWeights; // 3x3 = 9 possible moves
 
         // First pass: count all votes and find the leading move
         for (uint256 i = 0; i < stepVotes.length; i++) {
