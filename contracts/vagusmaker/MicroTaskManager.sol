@@ -74,9 +74,15 @@ contract MicroTaskManager is ANSStateManager {
         return tasks[taskId];
     }
 
-    /// @notice Mark task as completed
+    /// @notice Mark task as completed (external)
     /// @param taskId The task ID to complete
     function completeTask(uint256 taskId) external {
+        _completeTask(taskId);
+    }
+
+    /// @notice Mark task as completed (internal)
+    /// @param taskId The task ID to complete
+    function _completeTask(uint256 taskId) internal {
         Task storage task = tasks[taskId];
         require(!task.completed, "Task already completed");
         require(task.creator == msg.sender, "Only creator can complete task");
@@ -84,7 +90,7 @@ contract MicroTaskManager is ANSStateManager {
         task.completed = true;
     }
 
-    /// @notice Update task state after consensus move with Merkle proof
+    /// @notice Update task state after consensus move with Merkle proof (external)
     /// @param taskId The task ID
     /// @param newStateRoot New state root after move
     /// @param move The move data
@@ -97,6 +103,22 @@ contract MicroTaskManager is ANSStateManager {
         bytes32 moveHash,
         bytes32[] calldata merkleProof
     ) external {
+        _updateTaskStateWithProof(taskId, newStateRoot, move, moveHash, merkleProof);
+    }
+
+    /// @notice Update task state after consensus move with Merkle proof (internal)
+    /// @param taskId The task ID
+    /// @param newStateRoot New state root after move
+    /// @param move The move data
+    /// @param moveHash keccak256(move.from, move.to)
+    /// @param merkleProof Merkle proof for state transition verification
+    function _updateTaskStateWithProof(
+        uint256 taskId,
+        bytes32 newStateRoot,
+        bytes memory move,
+        bytes32 moveHash,
+        bytes32[] memory merkleProof
+    ) internal {
         Task storage task = tasks[taskId];
         require(!task.completed, "Task already completed");
 
@@ -122,11 +144,19 @@ contract MicroTaskManager is ANSStateManager {
         emit StepCompleted(taskId, task.currentStep, move);
     }
 
-    /// @notice Simplified update for MVP (without full Merkle verification)
+    /// @notice Simplified update for MVP (without full Merkle verification) - external
     /// @param taskId The task ID
     /// @param newStateRoot New state root after move
     /// @param move The move data
     function updateTaskState(uint256 taskId, bytes32 newStateRoot, bytes calldata move) external {
+        _updateTaskState(taskId, newStateRoot, move);
+    }
+
+    /// @notice Simplified update for MVP (without full Merkle verification) - internal
+    /// @param taskId The task ID
+    /// @param newStateRoot New state root after move
+    /// @param move The move data
+    function _updateTaskState(uint256 taskId, bytes32 newStateRoot, bytes calldata move) internal {
         Task storage task = tasks[taskId];
         require(!task.completed, "Task already completed");
 
@@ -159,10 +189,17 @@ contract MicroTaskManager is ANSStateManager {
         return proof.length >= 1; // Basic length check
     }
 
-    /// @notice Check if a task exists
+    /// @notice Check if a task exists (external)
     /// @param taskId The task ID to check
     /// @return exists Whether the task exists
     function taskExists(uint256 taskId) external view returns (bool) {
+        return _taskExists(taskId);
+    }
+
+    /// @notice Check if a task exists (internal)
+    /// @param taskId The task ID to check
+    /// @return exists Whether the task exists
+    function _taskExists(uint256 taskId) internal view returns (bool) {
         return tasks[taskId].creator != address(0);
     }
 }

@@ -72,7 +72,7 @@ contract ReputationWeightedVoter is MicroTaskManager {
         bytes calldata proof
     ) external {
         // Check task exists and is not completed
-        require(taskExists(taskId), "Task does not exist");
+        require(_taskExists(taskId), "Task does not exist");
         Task storage task = tasks[taskId];
         require(!task.completed, "Task already completed");
         require(task.currentStep == step, "Wrong step");
@@ -228,7 +228,7 @@ contract ReputationWeightedVoter is MicroTaskManager {
         bytes memory moveData = abi.encode(result.fromPeg, result.toPeg);
 
         // Update task state with Merkle proof verification
-        updateTaskStateWithProof(taskId, newStateRoot, moveData, moveHash, merkleProof);
+        _updateTaskStateWithProof(taskId, newStateRoot, moveData, moveHash, merkleProof);
 
         emit ConsensusAchieved(taskId, step, result.fromPeg, result.toPeg, result.totalWeight);
 
@@ -237,7 +237,7 @@ contract ReputationWeightedVoter is MicroTaskManager {
 
         // Check if task is solved (for 10-disk Hanoi, this would be 1023 moves)
         if (_isTaskSolved(taskId)) {
-            completeTask(taskId);
+            _completeTask(taskId);
         }
     }
 
