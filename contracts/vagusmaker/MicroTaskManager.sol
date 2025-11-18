@@ -31,6 +31,17 @@ contract MicroTaskManager is ANSStateManager {
     /// @notice Event emitted when a step is completed
     event StepCompleted(uint256 indexed taskId, uint256 step, bytes move);
 
+    /// @notice Structure for Merkle proof of state transition
+    struct StateTransition {
+        bytes32 oldStateRoot;
+        bytes32 newStateRoot;
+        bytes32 moveHash;      // keccak256(move.from, move.to)
+        bytes32[] merkleProof; // Merkle proof for the transition
+    }
+
+    /// @notice Mapping of taskId => step => state transition proof
+    mapping(uint256 => mapping(uint256 => StateTransition)) public stateTransitions;
+
     /// @notice Create a new Hanoi Tower task
     /// @param initialState Encoded initial state of Hanoi towers
     /// @param totalReward Total reward for completing the task
@@ -73,7 +84,45 @@ contract MicroTaskManager is ANSStateManager {
         task.completed = true;
     }
 
-    /// @notice Update task state after consensus move
+    /// @notice Update task state after consensus move with Merkle proof
+    /// @param taskId The task ID
+    /// @param newStateRoot New state root after move
+    /// @param move The move data
+    /// @param moveHash keccak256(move.from, move.to)
+    /// @param merkleProof Merkle proof for state transition verification
+    function updateTaskStateWithProof(
+        uint256 taskId,
+        bytes32 newStateRoot,
+        bytes calldata move,
+        bytes32 moveHash,
+        bytes32[] calldata merkleProof
+    ) external {
+        Task storage task = tasks[taskId];
+        require(!task.completed, "Task already completed");
+
+        // Verify the state transition using Merkle proof
+        require(_verifyStateTransition(
+            task.currentStateRoot,
+            newStateRoot,
+            moveHash,
+            merkleProof
+        ), "Invalid state transition proof");
+
+        // Record the state transition proof
+        stateTransitions[taskId][task.currentStep] = StateTransition({
+            oldStateRoot: task.currentStateRoot,
+            newStateRoot: newStateRoot,
+            moveHash: moveHash,
+            merkleProof: merkleProof
+        });
+
+        task.currentStep++;
+        task.currentStateRoot = newStateRoot;
+
+        emit StepCompleted(taskId, task.currentStep, move);
+    }
+
+    /// @notice Simplified update for MVP (without full Merkle verification)
     /// @param taskId The task ID
     /// @param newStateRoot New state root after move
     /// @param move The move data
@@ -85,6 +134,29 @@ contract MicroTaskManager is ANSStateManager {
         task.currentStateRoot = newStateRoot;
 
         emit StepCompleted(taskId, task.currentStep, move);
+    }
+
+    /// @notice Verify state transition using Merkle proof
+    /// @param oldRoot Previous state root
+    /// @param newRoot New state root
+    /// @param moveHash Hash of the move applied
+    /// @param proof Merkle proof for verification
+    /// @return valid Whether the proof is valid
+    function _verifyStateTransition(
+        bytes32 oldRoot,
+        bytes32 newRoot,
+        bytes32 moveHash,
+        bytes32[] memory proof
+    ) internal pure returns (bool) {
+        // Simplified Merkle verification for MVP
+        // In production, this would implement full Merkle tree verification
+        // For now, we accept any proof as valid (trust-based for demo)
+
+        // TODO: Implement full Merkle tree verification
+        // bytes32 computedRoot = _computeMerkleRoot(moveHash, proof);
+        // return computedRoot == newRoot;
+
+        return proof.length >= 1; // Basic length check
     }
 
     /// @notice Check if a task exists

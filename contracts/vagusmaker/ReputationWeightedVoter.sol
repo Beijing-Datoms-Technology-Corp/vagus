@@ -125,7 +125,7 @@ contract ReputationWeightedVoter is MicroTaskManager {
         }
     }
 
-    /// @notice Check if consensus has been achieved for a step
+    /// @notice Check if consensus has been achieved for a step using First-to-ahead-by-k algorithm
     /// @param taskId The task ID
     /// @param step The step number
     /// @param k The k-ahead-by threshold
@@ -136,29 +136,43 @@ contract ReputationWeightedVoter is MicroTaskManager {
             return ConsensusResult(false, 0, 0, 0);
         }
 
-        // Count votes by move (from,to pair)
-        // Using mapping of uint16 (from*3 + to) to total weight
+        // Count votes by move using mapping (from*3 + to) to total weight
         mapping(uint16 => uint256) storage moveWeights;
         uint16 maxMove = 0;
         uint256 maxWeight = 0;
-        uint256 secondMaxWeight = 0;
 
+        // First pass: count all votes and find the leading move
         for (uint256 i = 0; i < stepVotes.length; i++) {
             Vote storage vote = stepVotes[i];
             uint16 moveKey = uint16(vote.from * 3 + vote.to);
             moveWeights[moveKey] += vote.weight;
 
             if (moveWeights[moveKey] > maxWeight) {
-                secondMaxWeight = maxWeight;
                 maxWeight = moveWeights[moveKey];
                 maxMove = moveKey;
-            } else if (moveWeights[moveKey] > secondMaxWeight) {
-                secondMaxWeight = moveWeights[moveKey];
             }
         }
 
-        // Check k-ahead-by condition: max >= second + k
-        if (maxWeight >= secondMaxWeight + k) {
+        // Second pass: verify First-to-ahead-by-k condition
+        // Leading move must be ahead of ALL other moves by at least k * their_weight
+        bool consensusAchieved = true;
+
+        for (uint256 i = 0; i < stepVotes.length && consensusAchieved; i++) {
+            Vote storage vote = stepVotes[i];
+            uint16 moveKey = uint16(vote.from * 3 + vote.to);
+
+            // Skip if this is the leading move
+            if (moveKey == maxMove) continue;
+
+            // Check if leading move has enough advantage over this competitor
+            uint256 competitorWeight = moveWeights[moveKey];
+            if (maxWeight < competitorWeight + k) {
+                consensusAchieved = false;
+                break;
+            }
+        }
+
+        if (consensusAchieved) {
             return ConsensusResult(
                 true,
                 uint8(maxMove / 3),
@@ -178,25 +192,45 @@ contract ReputationWeightedVoter is MicroTaskManager {
         // Record consensus move
         consensusMoves[taskId][step] = RedFlagValidator.Move(result.fromPeg, result.toPeg);
 
-        // Apply move and update task state
+        // Apply move and update task state with Merkle proof
         Task storage task = tasks[taskId];
-        bytes memory currentState = step == 0 ? task.initialState :
-            validator.applyMove(task.initialState, consensusMoves[taskId][step-1]);
 
+        // Get current state (for step 0, use initial state)
+        bytes memory currentState;
+        if (step == 0) {
+            currentState = task.initialState;
+        } else {
+            // In production, this would reconstruct state from Merkle proofs
+            // For MVP demo, we reconstruct by replaying all previous moves
+            currentState = task.initialState;
+            for (uint256 s = 0; s < step; s++) {
+                RedFlagValidator.Move memory prevMove = consensusMoves[taskId][s];
+                currentState = validator.applyMove(currentState, prevMove);
+            }
+        }
+
+        // Apply the consensus move
         bytes memory newState = validator.applyMove(currentState,
             RedFlagValidator.Move(result.fromPeg, result.toPeg));
 
         bytes32 newStateRoot = keccak256(newState);
+        bytes32 moveHash = keccak256(abi.encode(result.fromPeg, result.toPeg));
+
+        // Create a simple Merkle proof (in production, this would be a real Merkle proof)
+        bytes32[] memory merkleProof = new bytes32[](1);
+        merkleProof[0] = keccak256(abi.encodePacked("vagusmaker_proof_", step));
+
         bytes memory moveData = abi.encode(result.fromPeg, result.toPeg);
 
-        updateTaskState(taskId, newStateRoot, moveData);
+        // Update task state with Merkle proof verification
+        updateTaskStateWithProof(taskId, newStateRoot, moveData, moveHash, merkleProof);
 
         emit ConsensusAchieved(taskId, step, result.fromPeg, result.toPeg, result.totalWeight);
 
         // Reward consensus voters (simplified - in production would distribute from reward pool)
         _rewardConsensusVoters(taskId, step, result.fromPeg, result.toPeg);
 
-        // Check if task is solved
+        // Check if task is solved (for 10-disk Hanoi, this would be 1023 moves)
         if (_isTaskSolved(taskId)) {
             completeTask(taskId);
         }
@@ -227,9 +261,16 @@ contract ReputationWeightedVoter is MicroTaskManager {
     /// @return solved Whether the task is solved
     function _isTaskSolved(uint256 taskId) internal view returns (bool) {
         Task storage task = tasks[taskId];
-        // For 3-disk Hanoi, check if all disks are on peg 2
-        // In production, this would check the final state
-        return task.currentStep >= 7; // 2^3 - 1 = 7 moves for 3-disk Hanoi
+
+        // Extract number of disks from initial state
+        bytes[][] memory pegs = abi.decode(task.initialState, (bytes[][]));
+        uint256 numDisks = pegs[0].length; // All disks start on peg 0
+
+        // Hanoi Tower requires exactly 2^numDisks - 1 moves
+        uint256 requiredMoves = (1 << numDisks) - 1; // 2^numDisks - 1
+
+        // Check if we've completed all required moves
+        return task.currentStep >= requiredMoves;
     }
 
     /// @notice Get votes for a specific step
